@@ -52,7 +52,7 @@ class MarkStalePushDevicesOffline extends Command
             $tenant = DB::connection('mysql')
                 ->table('tenants')
                 ->where('id', $tenantId)
-                ->where('is_active', true)
+                ->where('status', 'active')
                 ->first();
 
             if (!$tenant) {

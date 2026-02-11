@@ -374,7 +374,7 @@ class ZKPushController extends Controller
         // 2. Fallback: scan all active tenants
         $tenants = DB::connection('mysql')
             ->table('tenants')
-            ->where('is_active', true)
+            ->where('status', 'active')
             ->get();
 
         foreach ($tenants as $tenant) {
