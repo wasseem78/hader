@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول - المشرف العام</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 50px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 32px;
+        }
+        .success-icon {
+            font-size: 80px;
+            margin-bottom: 30px;
+        }
+        .info-box {
+            background: #f0f0f0;
+            border-radius: 10px;
+            padding: 30px;
+            margin: 30px 0;
+            text-align: right;
+        }
+        .info-item {
+            margin: 15px 0;
+            font-size: 18px;
+        }
+        .label {
+            font-weight: bold;
+            color: #667eea;
+            display: inline-block;
+            min-width: 100px;
+        }
+        .value {
+            color: #333;
+            background: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            display: inline-block;
+            font-family: 'Courier New', monospace;
+        }
+        .url-box {
+            background: #667eea;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .url {
+            font-size: 20px;
+            font-weight: bold;
+            word-break: break-all;
+        }
+        .button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+        .button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .note {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 30px;
+            color: #856404;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-icon">✅</div>
+        <h1>تم تحديث كلمة المرور بنجاح!</h1>
+        
+        <div class="info-box">
+            <div class="info-item">
+                <span class="label">البريد الإلكتروني:</span>
+                <span class="value">admin@attendance.local</span>
+            </div>
+            <div class="info-item">
+                <span class="label">كلمة المرور:</span>
+                <span class="value">admin123</span>
+            </div>
+        </div>
+
+        <div class="url-box">
+            <div style="margin-bottom: 10px; font-size: 16px;">صفحة تسجيل الدخول:</div>
+            <div class="url">http://localhost/attendance/public/super-admin/login</div>
+        </div>
+
+        <a href="http://localhost/attendance/public/super-admin/login" class="button">
+            الانتقال إلى صفحة تسجيل الدخول
+        </a>
+
+        <div class="note">
+            <strong>⚠ ملاحظة هامة:</strong><br>
+            هذا حساب المشرف العام (Super Admin)، يجب استخدام صفحة تسجيل الدخول الخاصة به:<br>
+            <code>/super-admin/login</code>
+        </div>
+    </div>
+</body>
+</html>
