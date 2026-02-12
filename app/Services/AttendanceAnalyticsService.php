@@ -82,11 +82,24 @@ class AttendanceAnalyticsService
 
     /**
      * Analyze individual employee attendance
+     *
+     * Works in two modes:
+     * 1. With shifts: Full analysis including late/early/overtime calculations
+     * 2. Without shifts: Basic analysis based on actual attendance records
+     *    (counts present days from records, uses working days as expected)
      */
     public function analyzeEmployeeAttendance(User $employee, Carbon $startDate, Carbon $endDate): array
     {
         $shifts = $employee->shifts;
         $records = $employee->attendanceRecords;
+        
+        // Filter records to the date range (in case eager load wasn't filtered)
+        $records = $records->filter(function ($record) use ($startDate, $endDate) {
+            $punchDate = $record->punch_date instanceof Carbon 
+                ? $record->punch_date 
+                : Carbon::parse($record->punch_date);
+            return $punchDate->between($startDate, $endDate);
+        });
         
         $analysis = [
             'employee_id' => $employee->id,
@@ -104,14 +117,14 @@ class AttendanceAnalyticsService
             'daily_records' => [],
         ];
 
-        // If no shifts assigned, skip analysis
+        // If no shifts assigned, do basic record-based analysis
         if ($shifts->isEmpty()) {
-            return $analysis;
+            return $this->analyzeWithoutShifts($analysis, $records, $startDate, $endDate);
         }
 
-        // Analyze each day in the range
+        // Analyze each day in the range (shift-based)
         $currentDate = $startDate->copy();
-        while ($currentDate <= $endDate) {
+        while ($currentDate <= $endDate && $currentDate <= Carbon::today()) {
             $dayOfWeek = strtolower($currentDate->format('l'));
             $dateString = $currentDate->toDateString();
             
@@ -123,7 +136,10 @@ class AttendanceAnalyticsService
                 
                 // Get records for this day
                 $dayRecords = $records->filter(function ($record) use ($dateString) {
-                    return $record->punch_date->toDateString() === $dateString;
+                    $pd = $record->punch_date instanceof Carbon 
+                        ? $record->punch_date->toDateString() 
+                        : (string) $record->punch_date;
+                    return $pd === $dateString;
                 });
                 
                 $dayAnalysis = $this->analyzeDayAttendance($dayRecords, $workingShift, $currentDate);
@@ -152,6 +168,66 @@ class AttendanceAnalyticsService
             }
             
             $currentDate->addDay();
+        }
+
+        return $analysis;
+    }
+
+    /**
+     * Basic attendance analysis when no shifts are assigned.
+     * Counts unique days with records as "present" and estimates expected days.
+     */
+    private function analyzeWithoutShifts(array $analysis, Collection $records, Carbon $startDate, Carbon $endDate): array
+    {
+        // Group records by date
+        $groupedByDate = $records->groupBy(function ($record) {
+            return $record->punch_date instanceof Carbon 
+                ? $record->punch_date->toDateString() 
+                : (string) $record->punch_date;
+        });
+
+        // Expected days = working days up to today (not future)
+        $effectiveEnd = $endDate->copy()->min(Carbon::today());
+        $analysis['expected_days'] = $this->calculateWorkingDays($startDate, $effectiveEnd);
+        $analysis['present_days'] = $groupedByDate->count();
+        $analysis['absent_days'] = max(0, $analysis['expected_days'] - $analysis['present_days']);
+        
+        // Without shifts we can't determine late, so count all present as on-time
+        $analysis['on_time_days'] = $analysis['present_days'];
+
+        // Calculate work hours from in/out pairs where available
+        foreach ($groupedByDate as $dateString => $dayRecords) {
+            $checkIns = $dayRecords->where('type', 'in')->sortBy('punch_time');
+            $checkOuts = $dayRecords->where('type', 'out')->sortByDesc('punch_time');
+
+            $firstIn = $checkIns->first();
+            $lastOut = $checkOuts->first();
+
+            $dayAnalysis = [
+                'date' => $dateString,
+                'shift_name' => null,
+                'shift_start' => null,
+                'shift_end' => null,
+                'status' => 'present',
+                'check_in' => $firstIn?->punch_time,
+                'check_out' => $lastOut?->punch_time,
+                'is_late' => false,
+                'late_minutes' => 0,
+                'is_early_departure' => false,
+                'early_minutes' => 0,
+                'overtime_minutes' => 0,
+                'work_hours' => 0,
+                'records_count' => $dayRecords->count(),
+            ];
+
+            if ($firstIn && $lastOut && $firstIn->id !== $lastOut->id) {
+                $inTime = Carbon::parse($firstIn->punched_at);
+                $outTime = Carbon::parse($lastOut->punched_at);
+                $dayAnalysis['work_hours'] = round($inTime->diffInMinutes($outTime) / 60, 2);
+                $analysis['total_work_hours'] += $dayAnalysis['work_hours'];
+            }
+
+            $analysis['daily_records'][$dateString] = $dayAnalysis;
         }
 
         return $analysis;
@@ -299,13 +375,16 @@ class AttendanceAnalyticsService
     }
 
     /**
-     * Get daily attendance trend data for charts
+     * Get daily attendance trend data for charts.
+     *
+     * Counts unique users per day from actual attendance records.
+     * Uses the first punch per user per day to determine presence.
      */
     public function getDailyTrend(int $companyId, Carbon $startDate, Carbon $endDate, ?string $branchId = null): array
     {
         $query = AttendanceRecord::where('company_id', $companyId)
             ->whereBetween('punch_date', [$startDate, $endDate])
-            ->where('type', 'in');
+            ->whereNull('deleted_at');
 
         if ($branchId) {
             $query->where('branch_id', $branchId);
@@ -314,8 +393,7 @@ class AttendanceAnalyticsService
         $dailyData = $query->selectRaw('
                 DATE(punch_date) as date,
                 COUNT(DISTINCT user_id) as present_count,
-                SUM(CASE WHEN is_late = 1 THEN 1 ELSE 0 END) as late_count,
-                AVG(late_minutes) as avg_late_minutes
+                SUM(CASE WHEN is_late = 1 THEN 1 ELSE 0 END) as late_count
             ')
             ->groupBy(DB::raw('DATE(punch_date)'))
             ->orderBy('date')
@@ -323,6 +401,7 @@ class AttendanceAnalyticsService
 
         $totalEmployees = User::where('company_id', $companyId)
             ->where('is_active', true)
+            ->whereNull('deleted_at')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->count();
 
@@ -331,11 +410,22 @@ class AttendanceAnalyticsService
         $absentData = [];
         $lateData = [];
 
-        foreach ($dailyData as $day) {
-            $labels[] = Carbon::parse($day->date)->format('M d');
-            $presentData[] = $day->present_count;
-            $absentData[] = max(0, $totalEmployees - $day->present_count);
-            $lateData[] = $day->late_count;
+        // Fill all dates in range (not just ones with data)
+        $current = $startDate->copy();
+        $effectiveEnd = $endDate->copy()->min(Carbon::today());
+        $dailyMap = $dailyData->keyBy('date');
+        
+        while ($current <= $effectiveEnd) {
+            $dateKey = $current->toDateString();
+            $day = $dailyMap->get($dateKey);
+            
+            $labels[] = $current->format('M d');
+            $presentCount = $day ? (int) $day->present_count : 0;
+            $presentData[] = $presentCount;
+            $absentData[] = max(0, $totalEmployees - $presentCount);
+            $lateData[] = $day ? (int) $day->late_count : 0;
+            
+            $current->addDay();
         }
 
         return [
@@ -497,7 +587,7 @@ class AttendanceAnalyticsService
     {
         $query = AttendanceRecord::where('company_id', $companyId)
             ->whereBetween('punch_date', [$startDate, $endDate])
-            ->where('type', 'in')
+            ->whereNull('deleted_at')
             ->where('is_late', true);
 
         if ($branchId) {
@@ -546,7 +636,7 @@ class AttendanceAnalyticsService
     {
         $query = AttendanceRecord::where('company_id', $companyId)
             ->whereBetween('punch_date', [$startDate, $endDate])
-            ->where('type', 'in');
+            ->whereNull('deleted_at');
 
         if ($branchId) {
             $query->where('branch_id', $branchId);
@@ -554,9 +644,8 @@ class AttendanceAnalyticsService
 
         $weeklyData = $query->selectRaw('
                 DAYOFWEEK(punch_date) as day_of_week,
-                COUNT(*) as total_attendance,
-                SUM(CASE WHEN is_late = 1 THEN 1 ELSE 0 END) as late_count,
-                AVG(late_minutes) as avg_late_minutes
+                COUNT(DISTINCT user_id, DATE(punch_date)) as total_attendance,
+                SUM(CASE WHEN is_late = 1 THEN 1 ELSE 0 END) as late_count
             ')
             ->groupBy(DB::raw('DAYOFWEEK(punch_date)'))
             ->orderBy('day_of_week')
