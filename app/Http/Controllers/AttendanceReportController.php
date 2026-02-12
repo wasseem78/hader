@@ -235,10 +235,6 @@ class AttendanceReportController extends Controller
         
         foreach ($employees as $employee) {
             $shift = $employee->shifts->first();
-            
-            if (!$shift) {
-                continue; // Skip employees without shifts
-            }
 
             // Get attendance records for this employee
             $records = AttendanceRecord::where('user_id', $employee->id)
@@ -247,10 +243,16 @@ class AttendanceReportController extends Controller
                 ->orderBy('punch_time')
                 ->get();
 
-            // Group by date
-            $recordsByDate = $records->groupBy(fn($r) => $r->punch_date->toDateString());
+            // Group by date (handle punch_date as string or Carbon)
+            $recordsByDate = $records->groupBy(function ($r) {
+                return $r->punch_date instanceof Carbon
+                    ? $r->punch_date->toDateString()
+                    : (string) $r->punch_date;
+            });
 
-            $workingDays = $this->countWorkingDays($startDate, $endDate, $shift);
+            $workingDays = $shift
+                ? $this->countWorkingDays($startDate, $endDate, $shift)
+                : $this->countWeekWorkingDays($startDate, $endDate);
             $presentDays = 0;
             $lateDays = 0;
             $totalLateMinutes = 0;
@@ -260,10 +262,15 @@ class AttendanceReportController extends Controller
             $totalOvertimeMinutes = 0;
             $dailyDetails = [];
 
-            // Analyze each working day
+            // Analyze each day in range (up to today)
             $currentDate = $startDate->copy();
-            while ($currentDate <= $endDate) {
-                if ($this->isWorkingDay($currentDate, $shift)) {
+            $effectiveEnd = $endDate->copy()->min(Carbon::today());
+            while ($currentDate <= $effectiveEnd) {
+                $isWorking = $shift
+                    ? $this->isWorkingDay($currentDate, $shift)
+                    : $this->isDefaultWorkingDay($currentDate);
+
+                if ($isWorking) {
                     $dateStr = $currentDate->toDateString();
                     $dayRecords = $recordsByDate->get($dateStr);
                     
@@ -271,6 +278,11 @@ class AttendanceReportController extends Controller
                         $presentDays++;
                         $checkIn = $dayRecords->where('type', 'in')->first();
                         $checkOut = $dayRecords->where('type', 'out')->first();
+                        
+                        // If no explicit 'in' record, use first record as check-in
+                        if (!$checkIn) {
+                            $checkIn = $dayRecords->sortBy('punch_time')->first();
+                        }
                         
                         $isLate = $checkIn?->is_late ?? false;
                         $lateMin = $checkIn?->late_minutes ?? 0;
@@ -285,13 +297,21 @@ class AttendanceReportController extends Controller
                         }
                         
                         $workMins = $checkOut?->work_duration_minutes ?? 0;
+                        
+                        // Fallback: estimate work hours from in/out punches
+                        if ($workMins == 0 && $checkIn && $checkOut && $checkIn->id !== $checkOut->id) {
+                            $inTime = Carbon::parse($checkIn->punched_at);
+                            $outTime = Carbon::parse($checkOut->punched_at);
+                            $workMins = $inTime->diffInMinutes($outTime);
+                        }
+                        
                         $totalWorkHours += $workMins / 60;
                         $totalOvertimeMinutes += $checkOut?->overtime_minutes ?? 0;
 
                         $dailyDetails[$dateStr] = [
                             'status' => 'present',
                             'check_in' => $checkIn?->punch_time,
-                            'check_out' => $checkOut?->punch_time,
+                            'check_out' => $checkOut && $checkOut->id !== $checkIn?->id ? $checkOut->punch_time : null,
                             'is_late' => $isLate,
                             'late_minutes' => $lateMin,
                             'work_hours' => round($workMins / 60, 2),
@@ -341,6 +361,32 @@ class AttendanceReportController extends Controller
         usort($report, fn($a, $b) => $b['severity']['score'] <=> $a['severity']['score']);
 
         return $report;
+    }
+
+    /**
+     * Default working days check (Sun-Thu) when no shift assigned
+     */
+    private function isDefaultWorkingDay(Carbon $date): bool
+    {
+        $dayOfWeek = $date->dayOfWeek;
+        return $dayOfWeek >= 0 && $dayOfWeek <= 4; // Sunday(0) to Thursday(4)
+    }
+
+    /**
+     * Count working days using default week (Sun-Thu) when no shift
+     */
+    private function countWeekWorkingDays(Carbon $start, Carbon $end): int
+    {
+        $count = 0;
+        $current = $start->copy();
+        $effectiveEnd = $end->copy()->min(Carbon::today());
+        while ($current <= $effectiveEnd) {
+            if ($this->isDefaultWorkingDay($current)) {
+                $count++;
+            }
+            $current->addDay();
+        }
+        return $count;
     }
 
     /**
