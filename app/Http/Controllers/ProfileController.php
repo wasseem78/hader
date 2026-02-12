@@ -14,8 +14,13 @@ class ProfileController extends Controller
 
     public function update(Request $request)
     {
-        $request->user()->update($request->only(['name', 'email']));
-        return back()->with('success', 'Profile updated');
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,' . $request->user()->id,
+        ]);
+
+        $request->user()->update($validated);
+        return back()->with('success', __('messages.profile_updated'));
     }
 
     public function destroy(Request $request)

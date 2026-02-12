@@ -206,7 +206,7 @@ class DepartmentController extends Controller
         // Get recent attendance for department employees
         $recentAttendance = \App\Models\AttendanceRecord::whereIn('user_id', $department->employees->pluck('id'))
             ->with('user')
-            ->orderBy('punch_time', 'desc')
+            ->orderBy('punched_at', 'desc')
             ->limit(10)
             ->get();
 

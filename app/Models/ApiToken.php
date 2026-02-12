@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 
 class ApiToken extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\UsesTenantConnection;
 
     protected $fillable = [
         'uuid',

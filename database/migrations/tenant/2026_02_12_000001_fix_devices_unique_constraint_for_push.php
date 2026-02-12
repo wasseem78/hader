@@ -31,19 +31,17 @@ return new class extends Migration
         });
 
         // Add unique on serial_number per company (push devices identify by SN)
-        // Using raw SQL for conditional index since Laravel doesn't support partial unique
+        // MySQL doesn't support partial/conditional indexes.
+        // MySQL treats NULLs as distinct in unique indexes, so a regular composite
+        // unique on (company_id, serial_number) will allow multiple rows where
+        // serial_number IS NULL (pull-mode devices without SN) while still
+        // preventing duplicates for push-mode devices that have a serial number.
         try {
-            DB::statement('CREATE UNIQUE INDEX devices_company_sn_unique ON devices (company_id, serial_number) WHERE serial_number IS NOT NULL AND deleted_at IS NULL');
+            Schema::table('devices', function (Blueprint $table) {
+                $table->unique(['company_id', 'serial_number'], 'devices_company_sn_unique');
+            });
         } catch (\Exception $e) {
-            // MySQL doesn't support partial indexes — use a regular unique with nulls
-            // MySQL treats NULLs as distinct in unique indexes, so this works
-            try {
-                Schema::table('devices', function (Blueprint $table) {
-                    $table->unique(['company_id', 'serial_number'], 'devices_company_sn_unique');
-                });
-            } catch (\Exception $e2) {
-                // Already exists or other issue
-            }
+            // Already exists or other issue — safe to ignore
         }
     }
 

@@ -13,11 +13,10 @@ class ReportController extends Controller
 {
     public function index(Request $request)
     {
-        $companyId = auth()->user()->company_id;
         $branchId = $request->input('branch_id');
         
-        // Build query with optional branch filter
-        $query = AttendanceRecord::where('company_id', $companyId);
+        // In multi-tenant setup, the DB is already scoped to the tenant
+        $query = AttendanceRecord::query();
         if ($branchId) {
             $query->where('branch_id', $branchId);
         }
@@ -33,7 +32,7 @@ class ReportController extends Controller
             ]
         ];
 
-        $branches = Branch::where('company_id', $companyId)->active()->get(['id', 'name']);
+        $branches = Branch::active()->get(['id', 'name']);
 
         return view('reports.index', [
             'summary' => $summary,
@@ -49,7 +48,7 @@ class ReportController extends Controller
         $date = $request->input('date', today()->toDateString());
         $branchId = $request->input('branch_id');
         
-        $query = AttendanceRecord::where('company_id', auth()->user()->company_id)
+        $query = AttendanceRecord::query()
             ->with(['user', 'branch']);
 
         // Branch filter
@@ -58,13 +57,13 @@ class ReportController extends Controller
         }
 
         if ($reportType === 'daily') {
-            $query->whereDate('punch_time', $date);
+            $query->whereDate('punch_date', $date);
         } elseif ($reportType === 'monthly') {
-            $query->whereMonth('punch_time', Carbon::parse($date)->month)
-                  ->whereYear('punch_time', Carbon::parse($date)->year);
+            $query->whereMonth('punch_date', Carbon::parse($date)->month)
+                  ->whereYear('punch_date', Carbon::parse($date)->year);
         }
 
-        $records = $query->orderBy('punch_time')->get();
+        $records = $query->orderBy('punched_at')->get();
 
         if ($type === 'pdf') {
             // PDF Export Logic (Simulated)
@@ -93,8 +92,8 @@ class ReportController extends Controller
                 foreach ($records as $record) {
                     fputcsv($file, [
                         $record->user->name ?? 'Unknown',
-                        $record->punch_time->toDateString(),
-                        $record->punch_time->toTimeString(),
+                        $record->punch_date,
+                        $record->punch_time,
                         $record->type,
                         $record->status
                     ]);
