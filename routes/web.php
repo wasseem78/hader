@@ -212,6 +212,10 @@ Route::middleware(['auth', 'verified', 'plan.limits'])->group(function () {
         ->name('devices.users');
     Route::post('/devices/{device}/push-command', [DeviceController::class, 'sendPushCommand'])
         ->name('devices.push-command');
+    Route::post('/devices/{device}/sync-users', [DeviceController::class, 'syncDeviceUsers'])
+        ->name('devices.sync-users');
+    Route::get('/devices/{device}/sync-users-status', [DeviceController::class, 'getSyncUsersStatus'])
+        ->name('devices.sync-users-status');
 
     // Employees Management
     Route::resource('employees', EmployeeController::class);

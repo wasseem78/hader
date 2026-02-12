@@ -203,6 +203,71 @@
     </div>
     @endif
 
+    @if(($device->connection_mode ?? 'pull') === 'push')
+    {{-- Sync Users from Device Section --}}
+    <div class="card" style="grid-column: span 2;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>👥 {{ __('messages.sync_users_from_device') }}</h3>
+            <span style="color: var(--text-secondary); font-size: 13px;">{{ __('messages.sync_users_desc') }}</span>
+        </div>
+        <div class="card-body">
+            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                <button id="sync-users-btn" onclick="syncDeviceUsers()" class="btn btn-primary" style="display: flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 15px;">
+                    <span id="sync-users-icon">👥</span>
+                    <span id="sync-users-text">{{ __('messages.sync_users_button') }}</span>
+                </button>
+                <div id="sync-users-info" style="color: var(--text-secondary); font-size: 13px;">
+                    {{ __('messages.sync_users_info') }}
+                </div>
+            </div>
+
+            {{-- Sync Status Area --}}
+            <div id="sync-users-status" style="margin-top: 16px; display: none;">
+                <div id="sync-users-progress" style="display: none; padding: 16px; background: #ebf8ff; border-radius: 8px; border: 1px solid #bee3f8;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="sync-spinner" style="width: 20px; height: 20px; border: 3px solid #bee3f8; border-top: 3px solid #3182ce; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span style="color: #2b6cb0; font-weight: 600;">{{ __('messages.sync_users_waiting') }}</span>
+                    </div>
+                    <p style="margin-top: 8px; color: #4a5568; font-size: 13px;">{{ __('messages.sync_users_waiting_detail') }}</p>
+                </div>
+
+                <div id="sync-users-result" style="display: none; padding: 16px; border-radius: 8px; border: 1px solid;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                        <span id="sync-result-icon" style="font-size: 20px;"></span>
+                        <span id="sync-result-title" style="font-weight: 600; font-size: 15px;"></span>
+                    </div>
+                    <div id="sync-result-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-top: 12px;">
+                    </div>
+                    <p id="sync-result-message" style="margin-top: 8px; font-size: 13px; color: var(--text-secondary);"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .sync-stat-card {
+            background: rgba(255,255,255,0.7);
+            padding: 10px 14px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .sync-stat-card .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .sync-stat-card .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+    </style>
+    @endif
+
     <!-- Debug Console -->
     <div class="card" style="grid-column: span 2;">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
@@ -355,6 +420,212 @@ async function sendPushCommand(command) {
     }
 
     setTimeout(() => { resultEl.style.display = 'none'; }, 5000);
+}
+
+// =============================================
+// Sync Users from Device
+// =============================================
+
+let syncPollInterval = null;
+
+async function syncDeviceUsers() {
+    const btn = document.getElementById('sync-users-btn');
+    const icon = document.getElementById('sync-users-icon');
+    const text = document.getElementById('sync-users-text');
+    const statusArea = document.getElementById('sync-users-status');
+    const progressEl = document.getElementById('sync-users-progress');
+    const resultEl = document.getElementById('sync-users-result');
+
+    // Disable button
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+    btn.style.cursor = 'not-allowed';
+    icon.textContent = '⏳';
+    text.textContent = '{{ __("messages.sync_users_sending") }}';
+
+    // Show progress area
+    statusArea.style.display = 'block';
+    progressEl.style.display = 'block';
+    resultEl.style.display = 'none';
+
+    addToConsole('Initiating user sync from device...', 'debug');
+
+    try {
+        const response = await fetch('{{ route("devices.sync-users", ["device" => $device->uuid]) }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            addToConsole('User sync command sent to device. Waiting for response...', 'success');
+            text.textContent = '{{ __("messages.sync_users_waiting_short") }}';
+
+            // Start polling for results
+            startSyncStatusPoll();
+        } else {
+            addToConsole(`Sync failed: ${data.message}`, 'error');
+            resetSyncButton();
+            progressEl.style.display = 'none';
+            showSyncError(data.message);
+        }
+    } catch (error) {
+        addToConsole(`Sync error: ${error.message}`, 'error');
+        resetSyncButton();
+        progressEl.style.display = 'none';
+        showSyncError(error.message);
+    }
+}
+
+function startSyncStatusPoll() {
+    let pollCount = 0;
+    const maxPolls = 60; // Poll for up to 2 minutes (every 2 sec)
+
+    syncPollInterval = setInterval(async () => {
+        pollCount++;
+
+        if (pollCount > maxPolls) {
+            clearInterval(syncPollInterval);
+            syncPollInterval = null;
+            addToConsole('Sync timeout — device may not have responded yet.', 'error');
+            resetSyncButton();
+            showSyncTimeout();
+            return;
+        }
+
+        try {
+            const response = await fetch('{{ route("devices.sync-users-status", ["device" => $device->uuid]) }}', {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'completed') {
+                clearInterval(syncPollInterval);
+                syncPollInterval = null;
+                showSyncResult(data.data);
+                resetSyncButton();
+                addToConsole(`User sync completed: ${data.message}`, 'success');
+            }
+            // If still 'pending', keep polling
+        } catch (error) {
+            // Network error — keep trying
+            console.warn('Sync status poll error:', error);
+        }
+    }, 2000);
+}
+
+function showSyncResult(data) {
+    const progressEl = document.getElementById('sync-users-progress');
+    const resultEl = document.getElementById('sync-users-result');
+    const statsEl = document.getElementById('sync-result-stats');
+    const titleEl = document.getElementById('sync-result-title');
+    const iconEl = document.getElementById('sync-result-icon');
+    const msgEl = document.getElementById('sync-result-message');
+
+    progressEl.style.display = 'none';
+    resultEl.style.display = 'block';
+
+    const stats = data.stats || {};
+    const total = stats.total || 0;
+    const created = stats.created || 0;
+    const updated = stats.updated || 0;
+    const skipped = stats.skipped || 0;
+
+    if (created > 0 || updated > 0) {
+        resultEl.style.background = '#f0fff4';
+        resultEl.style.borderColor = '#c6f6d5';
+        iconEl.textContent = '✅';
+        titleEl.textContent = '{{ __("messages.sync_users_success") }}';
+        titleEl.style.color = '#276749';
+    } else {
+        resultEl.style.background = '#fffff0';
+        resultEl.style.borderColor = '#fefcbf';
+        iconEl.textContent = 'ℹ️';
+        titleEl.textContent = '{{ __("messages.sync_users_no_changes") }}';
+        titleEl.style.color = '#975a16';
+    }
+
+    statsEl.innerHTML = `
+        <div class="sync-stat-card">
+            <div class="stat-value" style="color: #2b6cb0;">${total}</div>
+            <div class="stat-label">{{ __("messages.sync_stat_total") }}</div>
+        </div>
+        <div class="sync-stat-card">
+            <div class="stat-value" style="color: #276749;">${created}</div>
+            <div class="stat-label">{{ __("messages.sync_stat_created") }}</div>
+        </div>
+        <div class="sync-stat-card">
+            <div class="stat-value" style="color: #975a16;">${updated}</div>
+            <div class="stat-label">{{ __("messages.sync_stat_updated") }}</div>
+        </div>
+        <div class="sync-stat-card">
+            <div class="stat-value" style="color: #718096;">${skipped}</div>
+            <div class="stat-label">{{ __("messages.sync_stat_skipped") }}</div>
+        </div>
+    `;
+
+    if (data.completed_at) {
+        msgEl.textContent = '{{ __("messages.sync_completed_at") }}: ' + new Date(data.completed_at).toLocaleString();
+    }
+}
+
+function showSyncError(message) {
+    const statusArea = document.getElementById('sync-users-status');
+    const resultEl = document.getElementById('sync-users-result');
+    const titleEl = document.getElementById('sync-result-title');
+    const iconEl = document.getElementById('sync-result-icon');
+    const statsEl = document.getElementById('sync-result-stats');
+    const msgEl = document.getElementById('sync-result-message');
+
+    statusArea.style.display = 'block';
+    resultEl.style.display = 'block';
+    resultEl.style.background = '#fff5f5';
+    resultEl.style.borderColor = '#fed7d7';
+    iconEl.textContent = '❌';
+    titleEl.textContent = '{{ __("messages.sync_users_failed") }}';
+    titleEl.style.color = '#c53030';
+    statsEl.innerHTML = '';
+    msgEl.textContent = message;
+}
+
+function showSyncTimeout() {
+    const progressEl = document.getElementById('sync-users-progress');
+    const resultEl = document.getElementById('sync-users-result');
+    const titleEl = document.getElementById('sync-result-title');
+    const iconEl = document.getElementById('sync-result-icon');
+    const statsEl = document.getElementById('sync-result-stats');
+    const msgEl = document.getElementById('sync-result-message');
+
+    progressEl.style.display = 'none';
+    resultEl.style.display = 'block';
+    resultEl.style.background = '#fffff0';
+    resultEl.style.borderColor = '#fefcbf';
+    iconEl.textContent = '⏰';
+    titleEl.textContent = '{{ __("messages.sync_users_timeout") }}';
+    titleEl.style.color = '#975a16';
+    statsEl.innerHTML = '';
+    msgEl.textContent = '{{ __("messages.sync_users_timeout_detail") }}';
+}
+
+function resetSyncButton() {
+    const btn = document.getElementById('sync-users-btn');
+    const icon = document.getElementById('sync-users-icon');
+    const text = document.getElementById('sync-users-text');
+
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+    icon.textContent = '👥';
+    text.textContent = '{{ __("messages.sync_users_button") }}';
 }
 </script>
 @endsection

@@ -382,4 +382,84 @@ class DeviceController extends Controller
             'message' => $message ?? 'Command queued',
         ]);
     }
+
+    /**
+     * Sync users from a push-mode device.
+     * Sends a DATA QUERY USERINFO command, device replies with user data via OPERLOG.
+     * Results are tracked in cache and available via getSyncUsersStatus.
+     */
+    public function syncDeviceUsers(Device $device, Request $request)
+    {
+        if (!$device->isPushMode()) {
+            return response()->json([
+                'success' => false,
+                'message' => __('messages.device_not_push_mode'),
+            ], 400);
+        }
+
+        $sn = $device->serial_number;
+        if (empty($sn)) {
+            return response()->json([
+                'success' => false,
+                'message' => __('messages.device_no_serial'),
+            ], 400);
+        }
+
+        // Check if a sync is already pending
+        $existing = ZKPushController::getUserSyncStatus($sn);
+        if ($existing && $existing['status'] === 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => __('messages.sync_users_already_pending'),
+                'status' => $existing,
+            ]);
+        }
+
+        // Queue the user sync command
+        ZKPushController::queueUserSync($sn);
+
+        return response()->json([
+            'success' => true,
+            'message' => __('messages.sync_users_command_sent'),
+        ]);
+    }
+
+    /**
+     * Get the status of a pending user sync operation.
+     * Polled by the UI to check if the device has responded yet.
+     */
+    public function getSyncUsersStatus(Device $device, Request $request)
+    {
+        $sn = $device->serial_number;
+        if (empty($sn)) {
+            return response()->json([
+                'success' => false,
+                'message' => __('messages.device_no_serial'),
+            ]);
+        }
+
+        $status = ZKPushController::getUserSyncStatus($sn);
+
+        if (!$status) {
+            return response()->json([
+                'success' => true,
+                'status' => 'none',
+                'message' => __('messages.no_sync_in_progress'),
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'status' => $status['status'],
+            'data' => $status,
+            'message' => $status['status'] === 'completed'
+                ? __('messages.sync_users_completed', [
+                    'created' => $status['stats']['created'] ?? 0,
+                    'updated' => $status['stats']['updated'] ?? 0,
+                    'skipped' => $status['stats']['skipped'] ?? 0,
+                    'total' => $status['stats']['total'] ?? 0,
+                  ])
+                : __('messages.sync_users_waiting'),
+        ]);
+    }
 }

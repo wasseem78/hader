@@ -148,6 +148,18 @@ class ZKPushController extends Controller
             return $this->plain('OK');
         }
 
+        // USERINFO table: some devices send user data here instead of OPERLOG
+        // when responding to DATA QUERY USERINFO command
+        if ($table === 'USERINFO') {
+            Log::info('ZK Push: USERINFO table received', [
+                'sn' => $serialNumber,
+                'bytes' => $bodyLen,
+                'preview' => substr($body, 0, 500),
+            ]);
+            $this->processUserInfo($body, $device);
+            return $this->plain('OK');
+        }
+
         if ($table === 'OPTIONS') {
             $this->processOptions($body, $device);
             return $this->plain('OK');
@@ -302,6 +314,34 @@ class ZKPushController extends Controller
     {
         $id = time();
         self::queueCommand($serialNumber, "C:{$id}:INFO");
+    }
+
+    /**
+     * Queue a DATA QUERY USERINFO command to request all users from device.
+     * The device will respond with user data via OPERLOG POST.
+     *
+     * We set a cache flag so processOperLog knows to import users.
+     */
+    public static function queueUserSync(string $serialNumber): void
+    {
+        $id = time();
+        // Mark that we're expecting user data for import
+        Cache::put("zk_user_sync_pending:{$serialNumber}", [
+            'requested_at' => now()->toDateTimeString(),
+            'status' => 'pending',
+            'stats' => ['created' => 0, 'updated' => 0, 'skipped' => 0, 'total' => 0],
+        ], now()->addMinutes(10));
+
+        // DATA QUERY USERINFO tells the device to send all enrolled users
+        self::queueCommand($serialNumber, "C:{$id}:DATA QUERY USERINFO", 600);
+    }
+
+    /**
+     * Get the status/result of a user sync request.
+     */
+    public static function getUserSyncStatus(string $serialNumber): ?array
+    {
+        return Cache::get("zk_user_sync_pending:{$serialNumber}");
     }
 
     // =========================================================================
@@ -584,46 +624,101 @@ class ZKPushController extends Controller
     /**
      * Process operation log data (OPERLOG).
      * Contains user enrollment changes, device config changes, etc.
+     *
+     * When a user sync is pending (queueUserSync was called), this method
+     * will auto-create or update users in the tenant database from the
+     * device's user data.
      */
     private function processOperLog(string $body, object $device): void
-
     {
         $lines = preg_split('/\r?\n/', trim($body));
         $connName = $device->_tenant_connection;
+        $sn = $device->serial_number ?? '';
         $userChanges = 0;
+
+        // Check if a user sync is pending — if so, import users
+        $syncPending = Cache::get("zk_user_sync_pending:{$sn}");
+        $isImportMode = $syncPending && $syncPending['status'] === 'pending';
+
+        $stats = $isImportMode ? $syncPending['stats'] : ['created' => 0, 'updated' => 0, 'skipped' => 0, 'total' => 0];
+
+        // Pre-fetch existing users mapped to this device's company
+        $existingUsers = [];
+        if ($isImportMode) {
+            $existingUsers = DB::connection($connName)
+                ->table('users')
+                ->where('company_id', $device->_company_id)
+                ->whereNotNull('device_user_id')
+                ->whereNull('deleted_at')
+                ->get()
+                ->keyBy('device_user_id')
+                ->toArray();
+        }
 
         foreach ($lines as $line) {
             $line = trim($line);
             if (empty($line)) continue;
 
-            // OPERLOG format varies: "OPLOG {operation} ..." or key=value pairs
-            // Common: USER PIN=xxx Name=xxx Pri=xxx Passwd=xxx Card=xxx Grp=xxx
-            if (preg_match('/USER\s+PIN=(\d+)\s+Name=(.+?)(?:\s+Pri=|\s*$)/i', $line, $m)) {
-                $deviceUserId = trim($m[1]);
-                $userName = trim($m[2]);
+            // OPERLOG USER line format:
+            // USER PIN=xxx Name=xxx Pri=xxx Passwd=xxx Card=xxx Grp=xxx TZ=xxx Verify=xxx ViceCard=xxx
+            if (preg_match('/USER\s+PIN=(\d+)/i', $line, $pinMatch)) {
+                $deviceUserId = trim($pinMatch[1]);
 
-                // Auto-map user if device_user_id matches
-                $user = DB::connection($connName)
-                    ->table('users')
-                    ->where('company_id', $device->_company_id)
-                    ->where('device_user_id', $deviceUserId)
-                    ->whereNull('deleted_at')
-                    ->first();
+                // Parse all key=value fields from the line
+                $userData = $this->parseUserInfoLine($line);
 
-                if ($user) {
-                    $userChanges++;
-                }
-
-                Log::debug('ZK Push: OPERLOG user', [
+                Log::debug('ZK Push: OPERLOG user line', [
                     'pin' => $deviceUserId,
-                    'name' => $userName,
-                    'matched' => $user ? true : false,
+                    'parsed' => $userData,
+                    'import_mode' => $isImportMode,
                 ]);
+
+                if ($isImportMode) {
+                    $stats['total']++;
+                    $result = $this->importOrUpdateUser($connName, $device, $deviceUserId, $userData, $existingUsers);
+
+                    if ($result === 'created') {
+                        $stats['created']++;
+                        $userChanges++;
+                    } elseif ($result === 'updated') {
+                        $stats['updated']++;
+                        $userChanges++;
+                    } else {
+                        $stats['skipped']++;
+                    }
+                } else {
+                    // Normal OPERLOG processing — just check if user exists
+                    $user = DB::connection($connName)
+                        ->table('users')
+                        ->where('company_id', $device->_company_id)
+                        ->where('device_user_id', $deviceUserId)
+                        ->whereNull('deleted_at')
+                        ->first();
+
+                    if ($user) {
+                        $userChanges++;
+                    }
+                }
             }
         }
 
+        // Update sync status if in import mode
+        if ($isImportMode) {
+            Cache::put("zk_user_sync_pending:{$sn}", [
+                'requested_at' => $syncPending['requested_at'],
+                'completed_at' => now()->toDateTimeString(),
+                'status' => 'completed',
+                'stats' => $stats,
+            ], now()->addMinutes(30));
+
+            Log::info('ZK Push: User sync import completed', [
+                'sn' => $sn,
+                'stats' => $stats,
+            ]);
+        }
+
         if ($userChanges > 0) {
-            // Refresh user count
+            // Refresh user count on device
             $totalUsers = DB::connection($connName)
                 ->table('users')
                 ->where('company_id', $device->_company_id)
@@ -632,6 +727,288 @@ class ZKPushController extends Controller
                 ->count();
 
             $this->updateDeviceOnTenant($device, ['total_users' => $totalUsers]);
+        }
+    }
+
+    /**
+     * Process USERINFO table data.
+     *
+     * Some ZKTeco firmware sends user data in a separate table (USERINFO)
+     * rather than as OPERLOG USER lines. Format varies:
+     *   - Tab-separated: PIN\tName\tCard\tPri\tPasswd\tGrp\tTZ\tVerify\tViceCard
+     *   - Key=value: PIN=1\tName=John\tCard=12345\tPri=0
+     *
+     * This method handles both formats and imports users if sync is pending.
+     */
+    private function processUserInfo(string $body, object $device): void
+    {
+        $lines = preg_split('/\r?\n/', trim($body));
+        $connName = $device->_tenant_connection;
+        $sn = $device->serial_number ?? '';
+
+        // Check if a user sync is pending
+        $syncPending = Cache::get("zk_user_sync_pending:{$sn}");
+        $isImportMode = $syncPending && $syncPending['status'] === 'pending';
+
+        if (!$isImportMode) {
+            Log::debug('ZK Push: USERINFO received but no sync pending', ['sn' => $sn, 'lines' => count($lines)]);
+            return;
+        }
+
+        $stats = $syncPending['stats'];
+
+        // Pre-fetch existing users
+        $existingUsers = DB::connection($connName)
+            ->table('users')
+            ->where('company_id', $device->_company_id)
+            ->whereNotNull('device_user_id')
+            ->whereNull('deleted_at')
+            ->get()
+            ->keyBy('device_user_id')
+            ->toArray();
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) continue;
+
+            // Try to parse as key=value line (PIN=x Name=x Card=x ...)
+            if (preg_match('/PIN=(\d+)/i', $line)) {
+                $userData = $this->parseUserInfoLine($line);
+            } else {
+                // Try tab-separated positional format
+                $parts = preg_split('/\t+/', $line);
+                if (count($parts) < 2) continue;
+
+                // Skip header lines
+                if (strtoupper(trim($parts[0])) === 'PIN' || strtoupper(trim($parts[0])) === 'NO') continue;
+
+                $userData = [
+                    'pin' => trim($parts[0] ?? ''),
+                    'name' => trim($parts[1] ?? ''),
+                    'card' => trim($parts[2] ?? ''),
+                    'privilege' => isset($parts[3]) ? (int) trim($parts[3]) : null,
+                    'password' => trim($parts[4] ?? ''),
+                    'group' => trim($parts[5] ?? ''),
+                    'verify' => isset($parts[7]) ? trim($parts[7]) : null,
+                    'vice_card' => null,
+                ];
+            }
+
+            $pin = $userData['pin'] ?? '';
+            if (empty($pin)) continue;
+
+            $stats['total']++;
+            $result = $this->importOrUpdateUser($connName, $device, $pin, $userData, $existingUsers);
+
+            if ($result === 'created') {
+                $stats['created']++;
+            } elseif ($result === 'updated') {
+                $stats['updated']++;
+            } else {
+                $stats['skipped']++;
+            }
+        }
+
+        // Update sync status
+        Cache::put("zk_user_sync_pending:{$sn}", [
+            'requested_at' => $syncPending['requested_at'],
+            'completed_at' => now()->toDateTimeString(),
+            'status' => 'completed',
+            'stats' => $stats,
+        ], now()->addMinutes(30));
+
+        // Update total users on device
+        $totalUsers = DB::connection($connName)
+            ->table('users')
+            ->where('company_id', $device->_company_id)
+            ->whereNotNull('device_user_id')
+            ->whereNull('deleted_at')
+            ->count();
+
+        $this->updateDeviceOnTenant($device, ['total_users' => $totalUsers]);
+
+        Log::info('ZK Push: USERINFO import completed', [
+            'sn' => $sn,
+            'stats' => $stats,
+        ]);
+    }
+
+    /**
+     * Parse a USER info line from OPERLOG into key-value pairs.
+     *
+     * Format: USER PIN=1 Name=John Card=12345 Pri=0 Passwd= Grp=1 TZ=0000000100000000 Verify=-1 ViceCard=
+     *
+     * @return array Parsed fields
+     */
+    private function parseUserInfoLine(string $line): array
+    {
+        $data = [
+            'pin' => null,
+            'name' => null,
+            'card' => null,
+            'privilege' => null,
+            'password' => null,
+            'group' => null,
+            'verify' => null,
+            'vice_card' => null,
+        ];
+
+        // Extract PIN
+        if (preg_match('/PIN=(\d+)/i', $line, $m)) {
+            $data['pin'] = trim($m[1]);
+        }
+
+        // Extract Name — capture everything between Name= and the next known key
+        if (preg_match('/Name=(.*?)(?:\s+(?:Pri|Card|Passwd|Grp|TZ|Verify|ViceCard)=|$)/i', $line, $m)) {
+            $data['name'] = trim($m[1]);
+        }
+
+        // Extract Card number
+        if (preg_match('/Card=(\S*)/i', $line, $m)) {
+            $data['card'] = trim($m[1]);
+        }
+
+        // Extract Privilege (Pri): 0=user, 2=enroll, 6=admin, 14=superadmin
+        if (preg_match('/Pri=(\d+)/i', $line, $m)) {
+            $data['privilege'] = (int) trim($m[1]);
+        }
+
+        // Extract Password
+        if (preg_match('/Passwd=(\S*)/i', $line, $m)) {
+            $data['password'] = trim($m[1]);
+        }
+
+        // Extract Group
+        if (preg_match('/Grp=(\d+)/i', $line, $m)) {
+            $data['group'] = trim($m[1]);
+        }
+
+        // Extract Verify mode
+        if (preg_match('/Verify=(-?\d+)/i', $line, $m)) {
+            $data['verify'] = trim($m[1]);
+        }
+
+        // Extract ViceCard
+        if (preg_match('/ViceCard=(\S*)/i', $line, $m)) {
+            $data['vice_card'] = trim($m[1]);
+        }
+
+        return $data;
+    }
+
+    /**
+     * Import or update a user from device data into the tenant database.
+     *
+     * @return string 'created', 'updated', or 'skipped'
+     */
+    private function importOrUpdateUser(
+        string $connName,
+        object $device,
+        string $deviceUserId,
+        array $userData,
+        array &$existingUsers
+    ): string {
+        $name = $userData['name'] ?? '';
+        $card = $userData['card'] ?? '';
+
+        // Skip entries with no name and PIN=0 (invalid)
+        if (empty($name) && $deviceUserId === '0') {
+            return 'skipped';
+        }
+
+        // Check if user already exists with this device_user_id
+        if (isset($existingUsers[$deviceUserId])) {
+            $existingUser = (object) $existingUsers[$deviceUserId];
+
+            // Update fields if they changed
+            $updates = [];
+
+            if (!empty($name) && $existingUser->name !== $name) {
+                // Only update name if the existing name looks auto-generated
+                // (don't overwrite manually-set names with device data)
+                $autoPrefix = 'Device User ';
+                if (str_starts_with($existingUser->name, $autoPrefix)) {
+                    $updates['name'] = $name;
+                }
+            }
+
+            if (!empty($card) && ($existingUser->card_number ?? '') !== $card) {
+                $updates['card_number'] = $card;
+            }
+
+            if (!empty($updates)) {
+                $updates['updated_at'] = now();
+                DB::connection($connName)
+                    ->table('users')
+                    ->where('id', $existingUser->id)
+                    ->update($updates);
+
+                return 'updated';
+            }
+
+            return 'skipped';
+        }
+
+        // Create new user
+        $displayName = !empty($name) ? $name : "Device User {$deviceUserId}";
+
+        // Generate a unique employee_id
+        $employeeId = 'DEV-' . $device->id . '-' . $deviceUserId;
+
+        // Generate a unique email (required field — use a placeholder)
+        $emailBase = Str::slug($displayName, '.') ?: 'user' . $deviceUserId;
+        $email = $emailBase . '.dev' . $deviceUserId . '@device.local';
+
+        // Ensure email uniqueness within this tenant
+        $emailExists = DB::connection($connName)
+            ->table('users')
+            ->where('email', $email)
+            ->exists();
+
+        if ($emailExists) {
+            $email = 'user.pin' . $deviceUserId . '.' . Str::random(4) . '@device.local';
+        }
+
+        try {
+            $newUserId = DB::connection($connName)->table('users')->insertGetId([
+                'uuid' => (string) Str::uuid(),
+                'company_id' => $device->_company_id,
+                'branch_id' => $device->branch_id,
+                'name' => $displayName,
+                'email' => $email,
+                'password' => bcrypt(Str::random(32)), // Random password, non-loginable
+                'employee_id' => $employeeId,
+                'device_user_id' => $deviceUserId,
+                'card_number' => !empty($card) ? $card : null,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // Add to local cache so duplicates in the same batch are caught
+            $existingUsers[$deviceUserId] = [
+                'id' => $newUserId,
+                'name' => $displayName,
+                'device_user_id' => $deviceUserId,
+                'card_number' => !empty($card) ? $card : null,
+            ];
+
+            Log::info('ZK Push: Created user from device', [
+                'user_id' => $newUserId,
+                'pin' => $deviceUserId,
+                'name' => $displayName,
+                'card' => $card,
+                'device_id' => $device->id,
+            ]);
+
+            return 'created';
+        } catch (\Exception $e) {
+            Log::error('ZK Push: Failed to create user from device', [
+                'pin' => $deviceUserId,
+                'name' => $displayName,
+                'error' => $e->getMessage(),
+            ]);
+            return 'skipped';
         }
     }
 
