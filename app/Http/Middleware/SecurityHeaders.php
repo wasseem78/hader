@@ -20,7 +20,7 @@ class SecurityHeaders
         // Content Security Policy
         // Allow scripts from self, unsafe-inline (for now, ideally remove), and specific CDNs (Google Fonts, Stripe, Pusher)
         $csp = "default-src 'self'; " .
-               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://js.pusher.com; " .
+               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://js.pusher.com https://cdn.jsdelivr.net; " .
                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.bunny.net; " .
                "font-src 'self' https://fonts.gstatic.com https://fonts.bunny.net data:; " .
                "img-src 'self' data: https:; " .
