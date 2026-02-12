@@ -322,11 +322,18 @@ class ZKPushController extends Controller
 
     /**
      * Return a plain text response (ICLOCK protocol).
+     * Responses end with \r\n per ADMS spec.
      */
     private function plain(string $body, int $status = 200)
     {
+        // ADMS protocol expects CRLF-terminated responses
+        $body = rtrim($body) . "\r\n";
+
         return response($body, $status)
-            ->header('Content-Type', 'text/plain');
+            ->header('Content-Type', 'text/plain; charset=utf-8')
+            ->header('Connection', 'close')
+            ->header('Pragma', 'no-cache')
+            ->header('Cache-Control', 'no-store, no-cache');
     }
 
     /**

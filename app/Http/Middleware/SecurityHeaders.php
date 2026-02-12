@@ -11,6 +11,12 @@ class SecurityHeaders
     {
         $response = $next($request);
 
+        // Skip security headers for ICLOCK/ADMS device endpoints
+        // ZKTeco devices have limited HTTP buffer and don't need CSP/HSTS
+        if (str_starts_with($request->path(), 'iclock')) {
+            return $response;
+        }
+
         // Content Security Policy
         // Allow scripts from self, unsafe-inline (for now, ideally remove), and specific CDNs (Google Fonts, Stripe, Pusher)
         $csp = "default-src 'self'; " .
