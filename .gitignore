@@ -32,6 +32,18 @@ cookie_audit.txt
 __pycache__/
 deploy_tool.php
 ssh_cmd.sh
+fix_*.php
+fix_*.py
+reproduce_*.php
+debug_*.php
+diagnose_*.php
+verify_*.php
+test_*.php
+check_*.php
+create_departments.php
+seed_test_data.php
+run_*.php
+login_page*.html
 
 # OS files
 .DS_Store
