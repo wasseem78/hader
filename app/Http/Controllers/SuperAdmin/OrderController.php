@@ -107,18 +107,31 @@ class OrderController extends Controller
             ]);
 
             // Create invoice
+            $invoiceDate = now()->toDateString();
             $invoice = Invoice::create([
                 'company_id' => $company->id,
-                'invoice_number' => 'INV-' . strtoupper(substr(md5(uniqid()), 0, 8)),
-                'plan_name' => $plan->name,
-                'billing_cycle' => $order->billing_cycle,
-                'amount' => $order->amount,
+                'plan_id' => $plan->id,
+                'number' => 'INV-' . strtoupper(substr(md5(uniqid()), 0, 8)),
+                'invoice_date' => $invoiceDate,
+                'due_date' => $invoiceDate,
+                'paid_date' => $invoiceDate,
                 'currency' => $order->currency,
+                'subtotal' => $order->amount,
+                'tax' => 0,
+                'discount' => 0,
+                'total' => $order->amount,
                 'status' => 'paid',
-                'invoice_date' => now(),
-                'paid_at' => now(),
-                'period_start' => $startDate,
-                'period_end' => $endDate,
+                'payment_method' => 'bank_transfer',
+                'period_start' => $startDate->toDateString(),
+                'period_end' => $endDate->toDateString(),
+                'line_items' => json_encode([
+                    [
+                        'description' => $plan->name . ' Plan (' . ucfirst($order->billing_cycle) . ')',
+                        'quantity' => 1,
+                        'unit_price' => $order->amount,
+                        'total' => $order->amount,
+                    ]
+                ]),
             ]);
 
             // Update order

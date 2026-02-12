@@ -277,11 +277,11 @@
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; font-size: 13px;">
             <div>
                 <div class="form-label">{{ app()->getLocale() == 'ar' ? 'رقم الفاتورة' : 'Invoice #' }}</div>
-                <strong style="color: var(--text-primary);">{{ $order->invoice->invoice_number }}</strong>
+                <strong style="color: var(--text-primary);">{{ $order->invoice->number }}</strong>
             </div>
             <div>
                 <div class="form-label">{{ app()->getLocale() == 'ar' ? 'المبلغ' : 'Amount' }}</div>
-                <strong style="color: var(--text-primary);">${{ number_format($order->invoice->amount, 2) }}</strong>
+                <strong style="color: var(--text-primary);">${{ number_format($order->invoice->total, 2) }}</strong>
             </div>
             <div>
                 <div class="form-label">{{ app()->getLocale() == 'ar' ? 'الحالة' : 'Status' }}</div>
