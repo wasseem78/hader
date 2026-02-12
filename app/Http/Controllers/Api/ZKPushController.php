@@ -705,13 +705,25 @@ class ZKPushController extends Controller
             };
 
             // Map verification mode → type
+            // ZKTeco ADMS verify codes (vary by model/firmware):
+            //   0  = Password
+            //   1  = Fingerprint
+            //   2  = Card (proximity/NFC)
+            //   3  = Card (ID/RFID) — F22/ID and similar models
+            //   4  = Card (secondary slot) — F22/ID and similar models
+            //   5  = Fingerprint + Password (multi-auth)
+            //   6  = Fingerprint + Card (multi-auth)
+            //   7  = Face
+            //   8  = Multi-factor
+            //   9  = Other biometric
+            //  15  = Face (alternate code)
             $verifyType = match ((int) ($record['verify'] ?? 1)) {
-                0 => 'password',
-                1, 4, 6, 9 => 'fingerprint',
-                2 => 'card',
-                3 => 'password',
-                7, 15 => 'face',
-                default => 'fingerprint',
+                0, 5 => 'password',
+                1, 9 => 'fingerprint',
+                2, 3, 4 => 'card',
+                6 => 'fingerprint',  // FP+Card → primary is fingerprint
+                7, 8, 15 => 'face',
+                default => 'other',
             };
 
             // Deduplication check
