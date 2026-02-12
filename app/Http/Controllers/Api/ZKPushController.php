@@ -141,6 +141,11 @@ class ZKPushController extends Controller
             return $this->plain('OK');
         }
 
+        if ($table === 'OPTIONS') {
+            $this->processOptions($body, $device);
+            return $this->plain('OK');
+        }
+
         if ($table === 'ATTPHOTO') {
             // Photo data — acknowledge but skip processing
             Log::debug('ZK Push: Photo data received', [
@@ -493,10 +498,75 @@ class ZKPushController extends Controller
     }
 
     /**
+     * Process device OPTIONS/INFO data.
+     * Contains device metadata: model, MAC, user count, fingerprint count, etc.
+     * Format: ~Key=Value,Key2=Value2,...
+     */
+    private function processOptions(string $body, object $device): void
+    {
+        $info = [];
+
+        // Parse comma-separated key=value pairs (with optional ~ prefix on keys)
+        $pairs = preg_split('/,/', $body);
+        foreach ($pairs as $pair) {
+            $pair = trim($pair);
+            if (str_contains($pair, '=')) {
+                [$key, $value] = explode('=', $pair, 2);
+                $key = ltrim(trim($key), '~');
+                $info[$key] = trim($value);
+            }
+        }
+
+        Log::info('ZK Push: Device OPTIONS', [
+            'sn' => $device->serial_number ?? '',
+            'device_name' => $info['DeviceName'] ?? null,
+            'mac' => $info['MAC'] ?? null,
+            'user_count' => $info['UserCount'] ?? null,
+            'fp_count' => $info['FPCount'] ?? null,
+            'face_count' => $info['FaceCount'] ?? null,
+            'transaction_count' => $info['TransactionCount'] ?? null,
+        ]);
+
+        // Update device record with reported info
+        $updateData = [];
+
+        if (!empty($info['DeviceName'])) {
+            $updateData['model'] = $info['DeviceName'];
+        }
+        if (isset($info['UserCount'])) {
+            $updateData['total_users'] = (int) $info['UserCount'];
+        }
+        if (isset($info['FPCount'])) {
+            $updateData['total_fingerprints'] = (int) $info['FPCount'];
+        }
+        if (isset($info['TransactionCount'])) {
+            $updateData['total_logs'] = (int) $info['TransactionCount'];
+        }
+
+        // Store full device info in settings JSON
+        if (!empty($info)) {
+            $existingSettings = json_decode(
+                DB::connection($device->_tenant_connection)
+                    ->table('devices')
+                    ->where('id', $device->id)
+                    ->value('settings') ?? '{}',
+                true
+            ) ?: [];
+            $existingSettings['device_info'] = $info;
+            $updateData['settings'] = json_encode($existingSettings);
+        }
+
+        if (!empty($updateData)) {
+            $this->updateDeviceOnTenant($device, $updateData);
+        }
+    }
+
+    /**
      * Process operation log data (OPERLOG).
      * Contains user enrollment changes, device config changes, etc.
      */
     private function processOperLog(string $body, object $device): void
+
     {
         $lines = preg_split('/\r?\n/', trim($body));
         $connName = $device->_tenant_connection;
