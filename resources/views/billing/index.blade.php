@@ -69,6 +69,9 @@
                 <a href="{{ route('billing.invoices') }}" class="btn btn-secondary btn-sm">
                     📋 {{ __('messages.view_invoices') }}
                 </a>
+                <a href="{{ route('billing.orders') }}" class="btn btn-secondary btn-sm">
+                    📦 {{ __('messages.my_orders') }}
+                </a>
             </div>
         </div>
     </div>
@@ -163,6 +166,29 @@
                 </div>
             </div>
         </div>
+
+        {{-- Pending Orders Banner --}}
+        @if($pendingOrders->count() > 0)
+        <div style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                <span style="font-size: 24px;">⏳</span>
+                <div>
+                    <strong style="color: #fbbf24;">{{ __('messages.pending_orders_title') }}</strong>
+                    <p style="color: var(--text-muted); font-size: 13px; margin: 2px 0 0;">{{ __('messages.pending_orders_desc') }}</p>
+                </div>
+            </div>
+            @foreach($pendingOrders as $pendingOrder)
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 6px;">
+                <div>
+                    <span style="color: var(--text-primary); font-weight: 600; font-size: 13px;">{{ $pendingOrder->plan->name ?? '—' }}</span>
+                    <span style="color: var(--text-muted); font-size: 12px; margin-{{ app()->getLocale() == 'ar' ? 'right' : 'left' }}: 8px;">{{ $pendingOrder->getTypeLabel() }}</span>
+                    <span style="color: var(--primary-light); font-weight: 600; margin-{{ app()->getLocale() == 'ar' ? 'right' : 'left' }}: 8px;">${{ number_format($pendingOrder->amount, 2) }}</span>
+                </div>
+                <a href="{{ route('billing.order.show', $pendingOrder) }}" class="btn btn-primary btn-sm">{{ __('messages.view_order') }}</a>
+            </div>
+            @endforeach
+        </div>
+        @endif
 
         {{-- Trial Warning --}}
         @if($subscriptionInfo['is_trial'] && $subscriptionInfo['trial_days_remaining'] <= 3)
@@ -354,24 +380,23 @@
                 <button class="btn btn-secondary" style="width: 100%; opacity: 0.5; cursor: not-allowed;" disabled>
                     ✓ {{ __('messages.current_plan') }}
                 </button>
-            @else
+            @elseif($plan->isFree())
                 <form action="{{ route('billing.subscribe', ['plan' => $plan->uuid]) }}" method="POST">
                     @csrf
                     <input type="hidden" name="billing_cycle" class="billing-cycle-input" value="monthly">
-                    @if($plan->isFree())
-                        <button type="submit" class="btn btn-secondary" style="width: 100%; text-align: center;">
-                            {{ $currentPlan && $currentPlan->price_monthly > $plan->price_monthly ? __('messages.downgrade') : __('messages.select_plan') }}
-                        </button>
-                    @else
-                        <button type="submit" class="btn btn-primary" style="width: 100%; text-align: center;">
-                            @if(!$currentPlan || $currentPlan->price_monthly < $plan->price_monthly)
-                                🚀 {{ __('messages.upgrade_now') }}
-                            @else
-                                {{ __('messages.switch_plan') }}
-                            @endif
-                        </button>
-                    @endif
+                    <button type="submit" class="btn btn-secondary" style="width: 100%; text-align: center;">
+                        {{ $currentPlan && $currentPlan->price_monthly > $plan->price_monthly ? __('messages.downgrade') : __('messages.select_plan') }}
+                    </button>
                 </form>
+            @else
+                {{-- Paid plans go through checkout --}}
+                <a href="{{ route('billing.checkout', ['plan' => $plan->uuid, 'billing_cycle' => 'monthly']) }}" class="btn btn-primary checkout-link" style="width: 100%; text-align: center;">
+                    @if(!$currentPlan || $currentPlan->price_monthly < $plan->price_monthly)
+                        🚀 {{ __('messages.upgrade_now') }}
+                    @else
+                        {{ __('messages.switch_plan') }}
+                    @endif
+                </a>
             @endif
         </div>
     </div>
@@ -486,8 +511,7 @@
             <p style="color: var(--text-secondary); margin-bottom: 20px;">
                 {{ __('messages.renew_description') }}
             </p>
-            <form action="{{ route('billing.renew') }}" method="POST">
-                @csrf
+            <form action="{{ route('billing.renew-checkout') }}" method="GET">
                 <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
                     <label style="display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 8px; border: 2px solid var(--glass-border); cursor: pointer; transition: border-color 0.2s;" onclick="this.querySelector('input').checked=true; this.parentElement.querySelectorAll('label').forEach(l=>l.style.borderColor='var(--glass-border)'); this.style.borderColor='rgba(99,102,241,0.5)';">
                         <input type="radio" name="billing_cycle" value="monthly" checked style="accent-color: #6366f1;">
@@ -510,7 +534,7 @@
                     </label>
                 </div>
                 <button type="submit" class="btn btn-primary" style="width: 100%;">
-                    🔄 {{ __('messages.confirm_renewal') }}
+                    🔄 {{ __('messages.proceed_to_checkout') }}
                 </button>
             </form>
             @else
@@ -579,6 +603,13 @@ function toggleBillingCycle(cycle) {
     }
 
     cycleInputs.forEach(input => input.value = cycle);
+
+    // Update checkout links (for paid plans)
+    document.querySelectorAll('.checkout-link').forEach(link => {
+        const url = new URL(link.href);
+        url.searchParams.set('billing_cycle', cycle);
+        link.href = url.toString();
+    });
 }
 </script>
 @endsection

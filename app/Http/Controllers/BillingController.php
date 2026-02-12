@@ -2,7 +2,8 @@
 
 // =============================================================================
 // Billing Controller - Subscription Management (Production-Ready)
-// Supports both Stripe and standalone manual subscription management
+// Orders go through a checkout → pending approval workflow.
+// Super admin must approve before a plan is activated.
 // =============================================================================
 
 namespace App\Http\Controllers;
@@ -11,6 +12,7 @@ use App\Models\Plan;
 use App\Models\Company;
 use App\Models\Invoice;
 use App\Models\Tenant;
+use App\Models\SubscriptionOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -31,12 +33,15 @@ class BillingController extends Controller
         $plans = Plan::where('is_active', true)->orderBy('sort_order')->get();
         $currentPlan = $company->plan;
 
-        // Calculate subscription info
         $subscriptionInfo = $this->getSubscriptionInfo($company);
-
-        // Calculate usage stats from tenant DB (Company model relationships
-        // would use central company_id which doesn't match tenant data)
         $usageStats = $this->getUsageStats($company);
+
+        // Get pending orders for this company
+        $pendingOrders = SubscriptionOrder::where('company_id', $company->id)
+            ->where('status', 'pending')
+            ->with('plan')
+            ->latest()
+            ->get();
 
         return view('billing.index', [
             'company' => $company,
@@ -44,11 +49,94 @@ class BillingController extends Controller
             'currentPlan' => $currentPlan,
             'subscriptionInfo' => $subscriptionInfo,
             'usageStats' => $usageStats,
+            'pendingOrders' => $pendingOrders,
         ]);
     }
 
     /**
-     * Subscribe to a plan (manual / standalone).
+     * Show checkout page for plan subscription / upgrade.
+     */
+    public function showCheckout(Request $request, Plan $plan)
+    {
+        $company = $this->getCompany();
+        if (!$company) {
+            return redirect()->route('dashboard')->with('error', __('messages.no_company'));
+        }
+
+        // Free plans don't need checkout
+        if ($plan->isFree()) {
+            return $this->activateFreePlan($company, $plan);
+        }
+
+        $billingCycle = $request->input('billing_cycle', 'monthly');
+        $price = $billingCycle === 'yearly' ? $plan->price_yearly : $plan->price_monthly;
+        $currentPlan = $company->plan;
+
+        // Determine order type
+        $orderType = 'new';
+        if ($currentPlan && !$currentPlan->isFree()) {
+            if ($plan->price_monthly > ($currentPlan->price_monthly ?? 0)) {
+                $orderType = 'upgrade';
+            } elseif ($plan->price_monthly < ($currentPlan->price_monthly ?? 0)) {
+                $orderType = 'downgrade';
+            }
+        }
+
+        // Check if there's already a pending order for this plan
+        $existingPending = SubscriptionOrder::where('company_id', $company->id)
+            ->where('plan_id', $plan->id)
+            ->where('status', 'pending')
+            ->first();
+
+        return view('billing.checkout', [
+            'company' => $company,
+            'plan' => $plan,
+            'currentPlan' => $currentPlan,
+            'billingCycle' => $billingCycle,
+            'price' => $price,
+            'orderType' => $orderType,
+            'existingPending' => $existingPending,
+        ]);
+    }
+
+    /**
+     * Show checkout page for renewal of current plan.
+     */
+    public function showRenewCheckout(Request $request)
+    {
+        $company = $this->getCompany();
+        if (!$company) {
+            return redirect()->route('dashboard')->with('error', __('messages.no_company'));
+        }
+
+        $plan = $company->plan;
+        if (!$plan || $plan->isFree()) {
+            return redirect()->route('billing.index')->with('error', __('messages.no_plan_to_renew'));
+        }
+
+        $billingCycle = $request->input('billing_cycle', 'monthly');
+        $price = $billingCycle === 'yearly' ? $plan->price_yearly : $plan->price_monthly;
+
+        $existingPending = SubscriptionOrder::where('company_id', $company->id)
+            ->where('plan_id', $plan->id)
+            ->where('type', 'renewal')
+            ->where('status', 'pending')
+            ->first();
+
+        return view('billing.checkout', [
+            'company' => $company,
+            'plan' => $plan,
+            'currentPlan' => $plan,
+            'billingCycle' => $billingCycle,
+            'price' => $price,
+            'orderType' => 'renewal',
+            'existingPending' => $existingPending,
+        ]);
+    }
+
+    /**
+     * Submit a subscription order (creates pending order).
+     * Plan is NOT activated until super admin approves.
      */
     public function subscribe(Request $request, Plan $plan)
     {
@@ -57,90 +145,76 @@ class BillingController extends Controller
             return redirect()->route('dashboard')->with('error', __('messages.no_company'));
         }
 
-        // Validate downgrade: ensure current usage doesn't exceed new plan limits
-        if (!$plan->isFree()) {
-            $usageStats = $this->getUsageStats($company);
-            if ($usageStats['devices_count'] > $plan->max_devices) {
-                return back()->with('error', __('messages.downgrade_too_many_devices', [
-                    'current' => $usageStats['devices_count'],
-                    'limit' => $plan->max_devices,
-                ]));
-            }
-            if ($usageStats['employees_count'] > $plan->max_employees) {
-                return back()->with('error', __('messages.downgrade_too_many_employees', [
-                    'current' => $usageStats['employees_count'],
-                    'limit' => $plan->max_employees,
-                ]));
-            }
+        // Free plans activate immediately
+        if ($plan->isFree()) {
+            return $this->activateFreePlan($company, $plan);
+        }
+
+        // Validate downgrade limits
+        $usageStats = $this->getUsageStats($company);
+        if ($usageStats['devices_count'] > $plan->max_devices) {
+            return back()->with('error', __('messages.downgrade_too_many_devices', [
+                'current' => $usageStats['devices_count'],
+                'limit' => $plan->max_devices,
+            ]));
+        }
+        if ($usageStats['employees_count'] > $plan->max_employees) {
+            return back()->with('error', __('messages.downgrade_too_many_employees', [
+                'current' => $usageStats['employees_count'],
+                'limit' => $plan->max_employees,
+            ]));
+        }
+
+        // Check for existing pending order for same plan
+        $existingPending = SubscriptionOrder::where('company_id', $company->id)
+            ->where('plan_id', $plan->id)
+            ->where('status', 'pending')
+            ->first();
+
+        if ($existingPending) {
+            return redirect()->route('billing.order.show', $existingPending)
+                ->with('info', __('messages.order_already_pending'));
         }
 
         $billingCycle = $request->input('billing_cycle', 'monthly');
+        $price = $billingCycle === 'yearly' ? $plan->price_yearly : $plan->price_monthly;
+        $currentPlan = $company->plan;
+
+        // Determine order type
+        $orderType = 'new';
+        if ($currentPlan && !$currentPlan->isFree()) {
+            if ($plan->price_monthly > ($currentPlan->price_monthly ?? 0)) {
+                $orderType = 'upgrade';
+            } elseif ($plan->price_monthly < ($currentPlan->price_monthly ?? 0)) {
+                $orderType = 'downgrade';
+            }
+        }
 
         try {
-            // Use central DB connection for transaction (Company & Invoice live there)
-            DB::connection('mysql')->beginTransaction();
-
-            $now = now();
-            $endsAt = $billingCycle === 'yearly' ? $now->copy()->addYear() : $now->copy()->addMonth();
-            $price = $billingCycle === 'yearly' ? $plan->price_yearly : $plan->price_monthly;
-
-            // Update company subscription
-            $company->update([
+            $order = SubscriptionOrder::create([
+                'company_id' => $company->id,
                 'plan_id' => $plan->id,
-                'stripe_subscription_status' => $plan->isFree() ? 'free' : 'active',
-                'subscription_ends_at' => $plan->isFree() ? null : $endsAt,
-                'max_devices' => $plan->max_devices,
-                'max_employees' => $plan->max_employees,
-                'trial_ends_at' => null, // Clear trial when subscribing
+                'type' => $orderType,
+                'billing_cycle' => $billingCycle,
+                'currency' => $plan->currency ?? 'USD',
+                'amount' => $price,
+                'previous_plan_id' => $currentPlan?->id,
+                'status' => 'pending',
+                'customer_notes' => $request->input('customer_notes'),
+                'payment_reference' => $request->input('payment_reference'),
             ]);
 
-            // Sync Tenant model
-            $this->syncTenant($company, $plan);
-
-            // Create invoice record (for paid plans)
-            if (!$plan->isFree()) {
-                $invoiceNumber = 'INV-' . strtoupper(Str::random(8));
-                Invoice::create([
-                    'company_id' => $company->id,
-                    'plan_id' => $plan->id,
-                    'number' => $invoiceNumber,
-                    'invoice_date' => $now,
-                    'due_date' => $now,
-                    'paid_date' => $now,
-                    'currency' => $plan->currency ?? 'USD',
-                    'subtotal' => $price,
-                    'tax' => 0,
-                    'discount' => 0,
-                    'total' => $price,
-                    'status' => 'paid',
-                    'payment_method' => 'manual',
-                    'period_start' => $now,
-                    'period_end' => $endsAt,
-                    'line_items' => [
-                        [
-                            'description' => $plan->name . ' Plan (' . ucfirst($billingCycle) . ')',
-                            'quantity' => 1,
-                            'unit_price' => $price,
-                            'total' => $price,
-                        ]
-                    ],
-                ]);
-            }
-
-            DB::connection('mysql')->commit();
-
-            return redirect()->route('billing.index')
-                ->with('success', __('messages.subscription_updated'));
+            return redirect()->route('billing.order.show', $order)
+                ->with('success', __('messages.order_submitted'));
 
         } catch (\Exception $e) {
-            DB::connection('mysql')->rollBack();
-            Log::error('Subscription error: ' . $e->getMessage());
+            Log::error('Subscription order error: ' . $e->getMessage());
             return back()->with('error', __('messages.subscription_error'));
         }
     }
 
     /**
-     * Renew current subscription.
+     * Submit a renewal order (creates pending order).
      */
     public function renew(Request $request)
     {
@@ -154,68 +228,129 @@ class BillingController extends Controller
             return redirect()->route('billing.index')->with('error', __('messages.no_plan_to_renew'));
         }
 
-        $billingCycle = $request->input('billing_cycle', 'monthly');
+        // Check for existing pending renewal
+        $existingPending = SubscriptionOrder::where('company_id', $company->id)
+            ->where('plan_id', $plan->id)
+            ->where('type', 'renewal')
+            ->where('status', 'pending')
+            ->first();
 
+        if ($existingPending) {
+            return redirect()->route('billing.order.show', $existingPending)
+                ->with('info', __('messages.order_already_pending'));
+        }
+
+        $billingCycle = $request->input('billing_cycle', 'monthly');
+        $price = $billingCycle === 'yearly' ? $plan->price_yearly : $plan->price_monthly;
+
+        try {
+            $order = SubscriptionOrder::create([
+                'company_id' => $company->id,
+                'plan_id' => $plan->id,
+                'type' => 'renewal',
+                'billing_cycle' => $billingCycle,
+                'currency' => $plan->currency ?? 'USD',
+                'amount' => $price,
+                'previous_plan_id' => $plan->id,
+                'status' => 'pending',
+                'customer_notes' => $request->input('customer_notes'),
+                'payment_reference' => $request->input('payment_reference'),
+            ]);
+
+            return redirect()->route('billing.order.show', $order)
+                ->with('success', __('messages.order_submitted'));
+
+        } catch (\Exception $e) {
+            Log::error('Renewal order error: ' . $e->getMessage());
+            return back()->with('error', __('messages.subscription_error'));
+        }
+    }
+
+    /**
+     * Show a specific order details (for the tenant user).
+     */
+    public function showOrder(SubscriptionOrder $order)
+    {
+        $company = $this->getCompany();
+        if (!$company || $order->company_id !== $company->id) {
+            abort(403);
+        }
+
+        return view('billing.order-detail', [
+            'order' => $order->load('plan', 'previousPlan'),
+            'company' => $company,
+        ]);
+    }
+
+    /**
+     * Show order history.
+     */
+    public function orders()
+    {
+        $company = $this->getCompany();
+        if (!$company) {
+            return redirect()->route('dashboard')->with('error', __('messages.no_company'));
+        }
+
+        $orders = SubscriptionOrder::where('company_id', $company->id)
+            ->with('plan')
+            ->latest()
+            ->paginate(15);
+
+        return view('billing.orders', [
+            'company' => $company,
+            'orders' => $orders,
+            'currentPlan' => $company->plan,
+        ]);
+    }
+
+    /**
+     * Cancel a pending order (by the tenant user).
+     */
+    public function cancelOrder(SubscriptionOrder $order)
+    {
+        $company = $this->getCompany();
+        if (!$company || $order->company_id !== $company->id) {
+            abort(403);
+        }
+
+        if (!$order->isPending()) {
+            return back()->with('error', __('messages.order_not_cancellable'));
+        }
+
+        $order->update(['status' => 'cancelled']);
+
+        return redirect()->route('billing.index')
+            ->with('success', __('messages.order_cancelled'));
+    }
+
+    /**
+     * Activate free plan immediately (no approval needed).
+     */
+    private function activateFreePlan(Company $company, Plan $plan)
+    {
         try {
             DB::connection('mysql')->beginTransaction();
 
-            $now = now();
-            // If subscription hasn't expired yet, extend from end date
-            $startFrom = ($company->subscription_ends_at && $company->subscription_ends_at->isFuture())
-                ? $company->subscription_ends_at
-                : $now;
-
-            $endsAt = $billingCycle === 'yearly'
-                ? $startFrom->copy()->addYear()
-                : $startFrom->copy()->addMonth();
-
-            $price = $billingCycle === 'yearly' ? $plan->price_yearly : $plan->price_monthly;
-
             $company->update([
-                'stripe_subscription_status' => 'active',
-                'subscription_ends_at' => $endsAt,
+                'plan_id' => $plan->id,
+                'stripe_subscription_status' => 'free',
+                'subscription_ends_at' => null,
+                'max_devices' => $plan->max_devices,
+                'max_employees' => $plan->max_employees,
                 'trial_ends_at' => null,
             ]);
 
-            // Sync Tenant model
             $this->syncTenant($company, $plan);
-
-            // Create invoice
-            $invoiceNumber = 'INV-' . strtoupper(Str::random(8));
-            Invoice::create([
-                'company_id' => $company->id,
-                'plan_id' => $plan->id,
-                'number' => $invoiceNumber,
-                'invoice_date' => $now,
-                'due_date' => $now,
-                'paid_date' => $now,
-                'currency' => $plan->currency ?? 'USD',
-                'subtotal' => $price,
-                'tax' => 0,
-                'discount' => 0,
-                'total' => $price,
-                'status' => 'paid',
-                'payment_method' => 'manual',
-                'period_start' => $startFrom,
-                'period_end' => $endsAt,
-                'line_items' => [
-                    [
-                        'description' => $plan->name . ' Plan Renewal (' . ucfirst($billingCycle) . ')',
-                        'quantity' => 1,
-                        'unit_price' => $price,
-                        'total' => $price,
-                    ]
-                ],
-            ]);
 
             DB::connection('mysql')->commit();
 
             return redirect()->route('billing.index')
-                ->with('success', __('messages.subscription_renewed'));
+                ->with('success', __('messages.subscription_updated'));
 
         } catch (\Exception $e) {
             DB::connection('mysql')->rollBack();
-            Log::error('Renewal error: ' . $e->getMessage());
+            Log::error('Free plan activation error: ' . $e->getMessage());
             return back()->with('error', __('messages.subscription_error'));
         }
     }
@@ -238,10 +373,8 @@ class BillingController extends Controller
         try {
             $company->update([
                 'stripe_subscription_status' => 'cancelled',
-                // Keep subscription_ends_at so they can still use until period ends
             ]);
 
-            // Sync Tenant model
             $this->syncTenant($company, $plan);
 
             return redirect()->route('billing.index')
@@ -290,81 +423,16 @@ class BillingController extends Controller
         ]);
     }
 
-    /**
-     * Checkout redirect (for Stripe — kept for future use).
-     */
-    public function checkout(Request $request, Plan $plan)
-    {
-        // If Stripe is configured, redirect to Stripe checkout
-        if (config('services.stripe.secret')) {
-            try {
-                $gateway = app(\App\Services\Payment\PaymentGateway::class);
-                $url = $gateway->createCheckoutSession($this->getCompany(), $plan);
-                return redirect($url);
-            } catch (\Exception $e) {
-                // Fall through to manual subscribe
-            }
-        }
-
-        // Otherwise, use manual subscription
-        return $this->subscribe($request, $plan);
-    }
-
-    /**
-     * Stripe portal (for Stripe — kept for future use).
-     */
-    public function portal()
-    {
-        if (config('services.stripe.secret')) {
-            try {
-                $gateway = app(\App\Services\Payment\PaymentGateway::class);
-                $url = $gateway->createPortalSession($this->getCompany());
-                return redirect($url);
-            } catch (\Exception $e) {
-                // Fall through
-            }
-        }
-
-        return redirect()->route('billing.index');
-    }
-
-    /**
-     * Stripe success callback.
-     */
-    public function success(Request $request)
-    {
-        return redirect()->route('billing.index')
-            ->with('success', __('messages.subscription_updated'));
-    }
-
-    /**
-     * Stripe cancel callback.
-     */
-    public function cancel()
-    {
-        return redirect()->route('billing.index')
-            ->with('info', __('messages.checkout_cancelled'));
-    }
-
     // =========================================================================
     // Helpers
     // =========================================================================
 
-    /**
-     * Get usage statistics from the TENANT database.
-     *
-     * The Company model relationships (devices(), users()) can't be used
-     * because Company is in the central DB with id=X, while tenant DB
-     * tables reference their own local company_id (usually 1).
-     * We query the tenant DB directly to get accurate counts.
-     */
     private function getUsageStats(Company $company): array
     {
         $deviceCount = 0;
         $employeeCount = 0;
 
         try {
-            // The tenant connection is configured by ResolveTenantFromSession middleware
             $deviceCount = DB::connection('tenant')->table('devices')
                 ->whereNull('deleted_at')
                 ->count();
@@ -389,12 +457,6 @@ class BillingController extends Controller
         ];
     }
 
-    /**
-     * Sync the Tenant model with Company subscription state.
-     *
-     * The Tenant model (central DB `tenants` table) has its own plan_id
-     * and status fields that must stay in sync with the Company record.
-     */
     private function syncTenant(Company $company, ?Plan $plan = null): void
     {
         try {
@@ -419,7 +481,6 @@ class BillingController extends Controller
                         : 'active',
                 ];
 
-                // Clear trial if Company cleared it
                 if (!$company->trial_ends_at) {
                     $updateData['trial_ends_at'] = null;
                 }
@@ -431,21 +492,11 @@ class BillingController extends Controller
         }
     }
 
-    /**
-     * Get the authenticated user's company from the CENTRAL database.
-     *
-     * The User model lives in the tenant DB and its company_id references the
-     * tenant-local companies table, so we cannot use $user->company (which
-     * queries the central DB with a mismatched ID). Instead we resolve the
-     * Company via the Tenant record stored in the session.
-     */
     private function getCompany(): ?Company
     {
-        // 1. Try the currentTenant binding set by ResolveTenantFromSession middleware
         $tenant = app()->bound('currentTenant') ? app('currentTenant') : null;
 
         if ($tenant) {
-            // Match central Company by subdomain or database name
             $company = Company::where('subdomain', $tenant->subdomain)->first()
                     ?? Company::where('database', 'tenant' . $tenant->subdomain)->first()
                     ?? Company::where('email', $tenant->email)->first();
@@ -453,10 +504,9 @@ class BillingController extends Controller
             if ($company) return $company;
         }
 
-        // 2. Try tenant_id from session → look up Tenant, then find matching Company
         $tenantId = session('tenant_id');
         if ($tenantId) {
-            $tenantRecord = \App\Models\Tenant::on('mysql')->find($tenantId);
+            $tenantRecord = Tenant::on('mysql')->find($tenantId);
             if ($tenantRecord) {
                 $company = Company::where('subdomain', $tenantRecord->subdomain)->first()
                         ?? Company::where('email', $tenantRecord->email)->first();
@@ -465,7 +515,6 @@ class BillingController extends Controller
             }
         }
 
-        // 3. Last resort: if there's only one company, use it
         if (Company::count() === 1) {
             return Company::first();
         }
@@ -473,9 +522,6 @@ class BillingController extends Controller
         return null;
     }
 
-    /**
-     * Build subscription status info array.
-     */
     private function getSubscriptionInfo(Company $company): array
     {
         $plan = $company->plan;
@@ -489,6 +535,7 @@ class BillingController extends Controller
             'is_cancelled' => false,
             'is_expired' => false,
             'is_free' => false,
+            'is_pending' => false,
             'trial_days_remaining' => 0,
             'subscription_start' => null,
             'subscription_end' => null,
@@ -505,7 +552,12 @@ class BillingController extends Controller
             return $info;
         }
 
-        // Free plan
+        // Check for pending orders
+        $hasPendingOrder = SubscriptionOrder::where('company_id', $company->id)
+            ->where('status', 'pending')
+            ->exists();
+        $info['is_pending'] = $hasPendingOrder;
+
         if ($plan->isFree()) {
             $info['status'] = 'free';
             $info['status_label'] = __('messages.free_plan');
@@ -516,7 +568,6 @@ class BillingController extends Controller
             return $info;
         }
 
-        // Trial
         if ($company->onTrial()) {
             $info['status'] = 'trial';
             $info['status_label'] = __('messages.trial_active');
@@ -530,7 +581,6 @@ class BillingController extends Controller
             return $info;
         }
 
-        // Active subscription
         if ($company->stripe_subscription_status === 'active') {
             $info['status'] = 'active';
             $info['status_label'] = __('messages.active_subscription');
@@ -541,13 +591,11 @@ class BillingController extends Controller
 
             if ($company->subscription_ends_at) {
                 $info['days_remaining'] = max(0, now()->diffInDays($company->subscription_ends_at, false));
-                // Show renew button when less than 7 days remaining
                 $info['can_renew'] = $info['days_remaining'] <= 7;
             }
             return $info;
         }
 
-        // Cancelled (still within period)
         if ($company->stripe_subscription_status === 'cancelled') {
             if ($company->subscription_ends_at && $company->subscription_ends_at->isFuture()) {
                 $info['status'] = 'cancelled_active';
@@ -570,7 +618,6 @@ class BillingController extends Controller
             return $info;
         }
 
-        // Expired
         if ($company->subscription_ends_at && $company->subscription_ends_at->isPast()) {
             $info['status'] = 'expired';
             $info['status_label'] = __('messages.subscription_expired');

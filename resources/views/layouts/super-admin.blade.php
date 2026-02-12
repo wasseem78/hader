@@ -769,6 +769,14 @@
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
                 {{ app()->getLocale() == 'ar' ? 'الخطط' : 'Plans' }}
             </a>
+            @php $pendingOrdersCount = \App\Models\SubscriptionOrder::where('status', 'pending')->count(); @endphp
+            <a href="{{ route('super-admin.orders.index') }}" class="nav-item {{ request()->routeIs('super-admin.orders.*') ? 'active' : '' }}">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                {{ app()->getLocale() == 'ar' ? 'الطلبات' : 'Orders' }}
+                @if($pendingOrdersCount > 0)
+                <span style="background: var(--danger); color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 10px; margin-{{ app()->getLocale() == 'ar' ? 'right' : 'left' }}: auto;">{{ $pendingOrdersCount }}</span>
+                @endif
+            </a>
             
             <div class="nav-label" style="margin-top: 16px;">{{ app()->getLocale() == 'ar' ? 'النظام' : 'System' }}</div>
             <a href="{{ route('super-admin.system.index') }}" class="nav-item {{ request()->routeIs('super-admin.system.*') ? 'active' : '' }}">

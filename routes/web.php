@@ -72,6 +72,12 @@ Route::prefix('super-admin')->name('super-admin.')->group(function () {
         // Plans Management
         Route::resource('plans', \App\Http\Controllers\SuperAdmin\PlanController::class);
 
+        // Orders Management
+        Route::get('orders', [\App\Http\Controllers\SuperAdmin\OrderController::class, 'index'])->name('orders.index');
+        Route::get('orders/{order}', [\App\Http\Controllers\SuperAdmin\OrderController::class, 'show'])->name('orders.show');
+        Route::post('orders/{order}/approve', [\App\Http\Controllers\SuperAdmin\OrderController::class, 'approve'])->name('orders.approve');
+        Route::post('orders/{order}/reject', [\App\Http\Controllers\SuperAdmin\OrderController::class, 'reject'])->name('orders.reject');
+
         // System Settings
         Route::get('/system', [\App\Http\Controllers\SuperAdmin\SystemController::class, 'index'])
             ->name('system.index');
@@ -241,10 +247,11 @@ Route::middleware(['auth', 'verified', 'plan.limits'])->group(function () {
     // Billing
     Route::get('/billing', [\App\Http\Controllers\BillingController::class, 'index'])->name('billing.index');
     Route::get('/billing/invoices', [\App\Http\Controllers\BillingController::class, 'invoices'])->name('billing.invoices');
-    Route::get('/billing/checkout/{plan}', [\App\Http\Controllers\BillingController::class, 'checkout'])->name('billing.checkout');
-    Route::get('/billing/portal', [\App\Http\Controllers\BillingController::class, 'portal'])->name('billing.portal');
-    Route::get('/billing/success', [\App\Http\Controllers\BillingController::class, 'success'])->name('billing.success');
-    Route::get('/billing/cancel', [\App\Http\Controllers\BillingController::class, 'cancel'])->name('billing.cancel');
+    Route::get('/billing/checkout/{plan}', [\App\Http\Controllers\BillingController::class, 'showCheckout'])->name('billing.checkout');
+    Route::get('/billing/renew-checkout', [\App\Http\Controllers\BillingController::class, 'showRenewCheckout'])->name('billing.renew-checkout');
+    Route::get('/billing/orders', [\App\Http\Controllers\BillingController::class, 'orders'])->name('billing.orders');
+    Route::get('/billing/orders/{order}', [\App\Http\Controllers\BillingController::class, 'showOrder'])->name('billing.order.show');
+    Route::post('/billing/orders/{order}/cancel', [\App\Http\Controllers\BillingController::class, 'cancelOrder'])->name('billing.order.cancel');
     Route::post('/billing/subscribe/{plan}', [\App\Http\Controllers\BillingController::class, 'subscribe'])->name('billing.subscribe');
     Route::post('/billing/renew', [\App\Http\Controllers\BillingController::class, 'renew'])->name('billing.renew');
     Route::post('/billing/cancel-subscription', [\App\Http\Controllers\BillingController::class, 'cancelSubscription'])->name('billing.cancel-subscription');
