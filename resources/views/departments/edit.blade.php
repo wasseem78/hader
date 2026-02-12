@@ -189,7 +189,7 @@
 </div>
 @endsection
 
-@push('styles')
+@section('styles')
 <style>
     .form-container {
         max-width: 900px;
@@ -377,12 +377,12 @@
         }
     }
 </style>
-@endpush
+@endsection
 
-@push('scripts')
+@section('scripts')
 <script>
     document.querySelector('.color-picker').addEventListener('input', function() {
         document.querySelector('.color-text').value = this.value.toUpperCase();
     });
 </script>
-@endpush
+@endsection

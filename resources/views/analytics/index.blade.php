@@ -140,7 +140,16 @@
             <h3>{{ __('messages.late_breakdown') ?? 'توزيع التأخيرات' }}</h3>
         </div>
         <div class="card-body">
-            <canvas id="lateBreakdownChart" height="300"></canvas>
+            @if(array_sum($lateBreakdown['data'] ?? []) > 0)
+                <canvas id="lateBreakdownChart" height="300"></canvas>
+            @else
+                <div style="display:flex;align-items:center;justify-content:center;height:300px;color:var(--text-secondary);">
+                    <div style="text-align:center;">
+                        <div style="font-size:2.5rem;margin-bottom:8px;">✅</div>
+                        <p>{{ __('messages.no_late_arrivals') ?? 'لا توجد تأخيرات في الفترة المحددة' }}</p>
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 </div>
@@ -286,7 +295,7 @@
 
 @endsection
 
-@push('styles')
+@section('styles')
 <style>
     .stats-grid-5 {
         grid-template-columns: repeat(5, 1fr) !important;
@@ -358,9 +367,9 @@
         }
     }
 </style>
-@endpush
+@endsection
 
-@push('scripts')
+@section('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -397,34 +406,37 @@
         });
 
         // Late Breakdown Pie Chart
-        const lateBreakdown = @json($lateBreakdown);
-        const lateBreakdownCtx = document.getElementById('lateBreakdownChart').getContext('2d');
-        new Chart(lateBreakdownCtx, {
-            type: 'doughnut',
-            data: {
-                labels: lateBreakdown.labels,
-                datasets: [{
-                    data: lateBreakdown.data,
-                    backgroundColor: lateBreakdown.colors,
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        rtl: {{ app()->getLocale() == 'ar' ? 'true' : 'false' }},
-                        labels: {
-                            color: '#9ca3af',
-                            font: { family: 'inherit' },
-                            padding: 16
+        const lateBreakdownEl = document.getElementById('lateBreakdownChart');
+        if (lateBreakdownEl) {
+            const lateBreakdown = @json($lateBreakdown);
+            const lateBreakdownCtx = lateBreakdownEl.getContext('2d');
+            new Chart(lateBreakdownCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: lateBreakdown.labels,
+                    datasets: [{
+                        data: lateBreakdown.data,
+                        backgroundColor: lateBreakdown.colors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            rtl: {{ app()->getLocale() == 'ar' ? 'true' : 'false' }},
+                            labels: {
+                                color: '#9ca3af',
+                                font: { family: 'inherit' },
+                                padding: 16
+                            }
                         }
                     }
                 }
-            }
-        });
+            });
+        }
 
         // Weekly Pattern Chart
         const weeklyPattern = @json($weeklyPattern);
@@ -476,4 +488,4 @@
         });
     });
 </script>
-@endpush
+@endsection
