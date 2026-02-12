@@ -20,8 +20,7 @@ use App\Http\Controllers\Api\ZKPushController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('iclock')
-    ->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class)
-    ->middleware('throttle:120,1') // 120 requests per minute per IP (replaces api group's 60/min)
+    ->middleware('throttle:120,1') // 120 requests per minute per IP
     ->group(function () {
 
     // Base URL: status check

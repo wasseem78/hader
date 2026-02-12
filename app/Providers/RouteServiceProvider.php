@@ -31,9 +31,9 @@ class RouteServiceProvider extends ServiceProvider
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));
 
-            // ICLOCK / ADMS protocol routes — no prefix, no CSRF
-            // Device sends to: /iclock/cdata?SN=xxx (not /api/iclock/...)
-            Route::middleware('api')
+            // ICLOCK / ADMS protocol routes — minimal middleware, no prefix, no CSRF
+            // Not using 'api' group to avoid the 60/min throttle — iclock.php sets 120/min
+            Route::middleware([\Illuminate\Routing\Middleware\SubstituteBindings::class])
                 ->group(base_path('routes/iclock.php'));
 
             Route::middleware('web')
