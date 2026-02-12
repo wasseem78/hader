@@ -14,7 +14,7 @@ return new class extends Migration
 
             // Who is ordering
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('plan_id')->constrained()->nullOnDelete();
+            $table->foreignId('plan_id')->nullable()->constrained()->nullOnDelete();
 
             // What type of order
             $table->enum('type', ['new', 'upgrade', 'downgrade', 'renewal'])->default('new');
