@@ -135,9 +135,16 @@ class ZKPushController extends Controller
             'last_push_received' => now(),
         ]);
 
+        // Track the stamp sent by the device (used for sync progress)
+        $deviceStamp = $request->query('Stamp', '');
+
         // Route by table type
         if ($table === 'OPERLOG') {
             $this->processOperLog($body, $device);
+            // Update OPERLOG stamp so device won't re-send these records
+            if (!empty($deviceStamp)) {
+                Cache::put("zk_stamp_op:{$serialNumber}", $deviceStamp, now()->addDays(30));
+            }
             return $this->plain('OK');
         }
 
@@ -166,6 +173,11 @@ class ZKPushController extends Controller
             'sn' => $serialNumber,
             'stats' => $stats,
         ]);
+
+        // Update ATTLOG stamp so device won't re-send these records
+        if (!empty($deviceStamp)) {
+            Cache::put("zk_stamp_att:{$serialNumber}", $deviceStamp, now()->addDays(30));
+        }
 
         // Update device sync stats
         $updateData = [
@@ -213,6 +225,7 @@ class ZKPushController extends Controller
             'status' => 'online',
             'last_seen' => now(),
         ]);
+        $this->updateRegistryHeartbeat($serialNumber, $request->ip());
 
         // Check for pending commands in cache
         $cacheKey = "zk_push_cmd:{$serialNumber}";
@@ -849,22 +862,47 @@ class ZKPushController extends Controller
      */
     private function buildHandshakeResponse(object $device): string
     {
-        $lines = [];
+        $sn = $device->serial_number ?? 'DEVICE';
 
-        $lines[] = 'GET OPTION FROM: ' . ($device->serial_number ?? 'DEVICE');
-        $lines[] = 'Stamp=9999';
-        $lines[] = 'OpStamp=9999';
-        $lines[] = 'PhotoStamp=0';
-        $lines[] = 'ErrorDelay=60';
+        // Retrieve last-seen stamps from cache (persisted per device)
+        // Stamps tell the device which records we already have, so it only sends new ones.
+        // Using 0 = "send me everything"; the device increments stamps as it sends.
+        $attStamp  = Cache::get("zk_stamp_att:{$sn}", 0);
+        $opStamp   = Cache::get("zk_stamp_op:{$sn}", 0);
+
+        $lines = [];
+        $lines[] = 'GET OPTION FROM: ' . $sn;
+
+        // Stamp / OpStamp: last received log stamp (0 = send all new)
+        $lines[] = "Stamp={$attStamp}";
+        $lines[] = "OpStamp={$opStamp}";
+        $lines[] = 'PhotoStamp=9999';
+
+        // Timing: ErrorDelay=30s on error, Delay=10s normal poll interval
+        $lines[] = 'ErrorDelay=30';
         $lines[] = 'Delay=10';
-        $lines[] = 'TransTimes=00:00;14:05';
+
+        // TransTimes: schedule for bulk data transfers.
+        // Use 00:00;23:59 to allow transfers at any time of day.
+        $lines[] = 'TransTimes=00:00;23:59';
         $lines[] = 'TransInterval=1';
-        $lines[] = 'TransFlag=TransData AttLog	OpLog	AttPhoto';
+
+        // TransFlag: which data tables to transfer
+        $lines[] = "TransFlag=TransData AttLog\tOpLog\tAttPhoto\tEnrollUser\tChgUser\tEnrollFP\tChgFP\tFACE";
+
+        // Realtime=1: device pushes each punch immediately (don't wait for TransTimes)
         $lines[] = 'Realtime=1';
         $lines[] = 'Encrypt=0';
         $lines[] = 'ServerVer=2.4.1';
-        $lines[] = 'ATTLOGStamp=0';
-        $lines[] = 'OPERLOGStamp=0';
+        $lines[] = 'PushProtVer=2.4.1';
+
+        // Per-table stamps (more specific than Stamp/OpStamp on newer firmware)
+        $lines[] = "ATTLOGStamp={$attStamp}";
+        $lines[] = "OPERLOGStamp={$opStamp}";
+        $lines[] = 'ATTPHOTOStamp=9999';
+
+        // TimeZone: ensure device knows server timezone
+        $lines[] = 'TimeZone=3';
 
         return implode("\r\n", $lines);
     }
