@@ -112,9 +112,9 @@ Route::middleware('guest')->group(function () {
             ], 422);
         }
 
-        // Rate limit: max 3 codes per email per hour
+        // Rate limit: max 5 codes per email per 5 minutes
         $rateLimitKey = 'verify-code-send:' . $email;
-        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($rateLimitKey, 3)) {
+        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
             $seconds = \Illuminate\Support\Facades\RateLimiter::availableIn($rateLimitKey);
             return response()->json([
                 'success' => false,
@@ -146,7 +146,7 @@ Route::middleware('guest')->group(function () {
             ], 500);
         }
 
-        \Illuminate\Support\Facades\RateLimiter::hit($rateLimitKey, 3600);
+        \Illuminate\Support\Facades\RateLimiter::hit($rateLimitKey, 300);
 
         return response()->json([
             'success' => true,
@@ -164,9 +164,9 @@ Route::middleware('guest')->group(function () {
         $email = strtolower(trim($request->email));
         $code = $request->code;
 
-        // Check attempt limit (max 5 wrong attempts)
+        // Check attempt limit (max 10 wrong attempts)
         $attempts = \Illuminate\Support\Facades\Cache::get('email_verify_attempts:' . $email, 0);
-        if ($attempts >= 5) {
+        if ($attempts >= 10) {
             \Illuminate\Support\Facades\Cache::forget('email_verify:' . $email);
             \Illuminate\Support\Facades\Cache::forget('email_verify_attempts:' . $email);
             return response()->json([
