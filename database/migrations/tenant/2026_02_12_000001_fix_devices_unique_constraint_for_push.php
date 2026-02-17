@@ -16,14 +16,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('devices', function (Blueprint $table) {
-            // Drop the old constraint that blocks push devices
-            try {
+        // Drop the old unique constraint if it exists
+        // (May not exist on fresh tenant DBs where base schema doesn't include it)
+        $indexExists = collect(DB::select("SHOW INDEX FROM devices WHERE Key_name = 'devices_company_id_ip_address_port_unique'"))->isNotEmpty();
+
+        if ($indexExists) {
+            Schema::table('devices', function (Blueprint $table) {
                 $table->dropUnique(['company_id', 'ip_address', 'port']);
-            } catch (\Exception $e) {
-                // May not exist if already dropped
-            }
-        });
+            });
+        }
 
         // Make ip_address nullable (push devices don't have one)
         Schema::table('devices', function (Blueprint $table) {
@@ -31,32 +32,35 @@ return new class extends Migration
         });
 
         // Add unique on serial_number per company (push devices identify by SN)
-        // MySQL doesn't support partial/conditional indexes.
-        // MySQL treats NULLs as distinct in unique indexes, so a regular composite
-        // unique on (company_id, serial_number) will allow multiple rows where
-        // serial_number IS NULL (pull-mode devices without SN) while still
-        // preventing duplicates for push-mode devices that have a serial number.
-        try {
+        $snIndexExists = collect(DB::select("SHOW INDEX FROM devices WHERE Key_name = 'devices_company_sn_unique'"))->isNotEmpty();
+
+        if (!$snIndexExists) {
             Schema::table('devices', function (Blueprint $table) {
                 $table->unique(['company_id', 'serial_number'], 'devices_company_sn_unique');
             });
-        } catch (\Exception $e) {
-            // Already exists or other issue — safe to ignore
         }
     }
 
     public function down(): void
     {
-        Schema::table('devices', function (Blueprint $table) {
-            try {
-                $table->dropIndex('devices_company_sn_unique');
-            } catch (\Exception $e) {
-                // Ignore
-            }
+        $snIndexExists = collect(DB::select("SHOW INDEX FROM devices WHERE Key_name = 'devices_company_sn_unique'"))->isNotEmpty();
 
-            // Restore original constraint
+        if ($snIndexExists) {
+            Schema::table('devices', function (Blueprint $table) {
+                $table->dropIndex('devices_company_sn_unique');
+            });
+        }
+
+        Schema::table('devices', function (Blueprint $table) {
             $table->string('ip_address')->nullable(false)->change();
-            $table->unique(['company_id', 'ip_address', 'port']);
         });
+
+        $ipIndexExists = collect(DB::select("SHOW INDEX FROM devices WHERE Key_name = 'devices_company_id_ip_address_port_unique'"))->isNotEmpty();
+
+        if (!$ipIndexExists) {
+            Schema::table('devices', function (Blueprint $table) {
+                $table->unique(['company_id', 'ip_address', 'port']);
+            });
+        }
     }
 };
