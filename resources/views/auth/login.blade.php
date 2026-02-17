@@ -166,49 +166,6 @@
             color: #a5b4fc;
         }
         
-        .demo-box {
-            margin-top: 32px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 14px;
-        }
-        
-        .demo-box h3 {
-            font-size: 11px;
-            font-weight: 600;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 14px;
-        }
-        
-        .demo-list {
-            list-style: none;
-        }
-        
-        .demo-list li {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            font-size: 13px;
-            color: #cbd5e1;
-        }
-        
-        .demo-list li:last-child {
-            border-bottom: none;
-        }
-        
-        .demo-list code {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-family: monospace;
-            color: #a5b4fc;
-        }
     </style>
 </head>
 <body>
@@ -255,27 +212,7 @@
             <a href="{{ route('register') }}">{{ __('messages.start_free_trial') }}</a>
         </div>
 
-        <div class="demo-box">
-            <h3>📋 {{ __('messages.demo_accounts') }}</h3>
-            <ul class="demo-list">
-                <li>
-                    <span>{{ __('messages.super_admin') }}</span> 
-                    <code>super@attendance.local</code>
-                </li>
-                <li>
-                    <span>{{ __('messages.company_admin') }}</span> 
-                    <code>admin@demo.local</code>
-                </li>
-                <li>
-                    <span>{{ __('messages.manager') }}</span> 
-                    <code>manager@demo.local</code>
-                </li>
-                <li>
-                    <span>{{ __('messages.password') }}</span> 
-                    <code>password</code>
-                </li>
-            </ul>
-        </div>
+
     </div>
 </body>
 </html>
