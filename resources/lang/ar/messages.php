@@ -547,6 +547,27 @@ return [
     'create_account_btn' => 'إنشاء حساب',
     'already_have_account' => 'لديك حساب بالفعل؟',
     'back_to_home' => 'العودة للرئيسية',
+
+    // Email Verification (Registration)
+    'verify_email_step' => 'تحقق من البريد',
+    'account_details_step' => 'بيانات الحساب',
+    'send_verification_code' => 'إرسال رمز التحقق',
+    'enter_verification_code' => 'أدخل رمز التحقق المرسل إلى بريدك الإلكتروني',
+    'code_expires_in' => 'ينتهي الرمز خلال',
+    'resend_code' => 'إعادة إرسال الرمز',
+    'email_verified_badge' => 'تم التحقق من البريد الإلكتروني بنجاح',
+    'enter_valid_email' => 'يرجى إدخال بريد إلكتروني صحيح',
+    'please_verify_email_first' => 'يرجى التحقق من بريدك الإلكتروني أولاً',
+    'network_error' => 'خطأ في الشبكة. يرجى المحاولة مرة أخرى.',
+    'email_already_registered' => 'هذا البريد الإلكتروني مسجل بالفعل.',
+    'too_many_code_requests' => 'طلبات كثيرة جداً. يرجى الانتظار :seconds ثانية.',
+    'code_sent_success' => 'تم إرسال رمز التحقق إلى بريدك الإلكتروني!',
+    'code_send_failed' => 'فشل إرسال رمز التحقق. يرجى المحاولة مرة أخرى.',
+    'too_many_verify_attempts' => 'محاولات فاشلة كثيرة. يرجى طلب رمز جديد.',
+    'code_expired' => 'انتهت صلاحية رمز التحقق. يرجى طلب رمز جديد.',
+    'code_invalid' => 'رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.',
+    'email_verified_success' => 'تم التحقق من البريد بنجاح! أكمل تسجيلك أدناه.',
+    'email_not_verified' => 'لم يتم التحقق من البريد الإلكتروني. يرجى التحقق أولاً.',
     
     // Login Demo
     'demo_accounts' => 'حسابات تجريبية',

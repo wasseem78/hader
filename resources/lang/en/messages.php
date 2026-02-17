@@ -397,6 +397,27 @@ return [
     'create_account_btn' => 'Create Account',
     'already_have_account' => 'Already have an account?',
     'back_to_home' => 'Back to Home',
+
+    // Email Verification (Registration)
+    'verify_email_step' => 'Verify Email',
+    'account_details_step' => 'Account Details',
+    'send_verification_code' => 'Send Verification Code',
+    'enter_verification_code' => 'Enter the verification code sent to your email',
+    'code_expires_in' => 'Code expires in',
+    'resend_code' => 'Resend Code',
+    'email_verified_badge' => 'Email verified successfully',
+    'enter_valid_email' => 'Please enter a valid email address',
+    'please_verify_email_first' => 'Please verify your email address first',
+    'network_error' => 'Network error. Please try again.',
+    'email_already_registered' => 'This email is already registered.',
+    'too_many_code_requests' => 'Too many requests. Please wait :seconds seconds.',
+    'code_sent_success' => 'Verification code sent to your email!',
+    'code_send_failed' => 'Failed to send verification code. Please try again.',
+    'too_many_verify_attempts' => 'Too many failed attempts. Please request a new code.',
+    'code_expired' => 'Verification code has expired. Please request a new one.',
+    'code_invalid' => 'Invalid verification code. Please try again.',
+    'email_verified_success' => 'Email verified successfully! Complete your registration below.',
+    'email_not_verified' => 'Email address was not verified. Please verify your email first.',
     
     // Login Demo
     'demo_accounts' => 'Demo Accounts',
