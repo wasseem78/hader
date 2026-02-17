@@ -95,26 +95,148 @@ Route::middleware('guest')->group(function () {
         return view('auth.register');
     })->name('register');
 
+    // Send verification code to email
+    Route::post('register/send-code', function (\Illuminate\Http\Request $request) {
+        $request->validate([
+            'email' => 'required|string|email|max:255',
+        ]);
+
+        $email = strtolower(trim($request->email));
+
+        // Check if email already registered
+        $exists = \App\Models\Tenant::where('email', $email)->exists();
+        if ($exists) {
+            return response()->json([
+                'success' => false,
+                'message' => __('messages.email_already_registered'),
+            ], 422);
+        }
+
+        // Rate limit: max 3 codes per email per hour
+        $rateLimitKey = 'verify-code-send:' . $email;
+        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($rateLimitKey, 3)) {
+            $seconds = \Illuminate\Support\Facades\RateLimiter::availableIn($rateLimitKey);
+            return response()->json([
+                'success' => false,
+                'message' => __('messages.too_many_code_requests', ['seconds' => $seconds]),
+            ], 429);
+        }
+
+        // Generate 6-digit code
+        $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        // Store in cache for 10 minutes
+        \Illuminate\Support\Facades\Cache::put('email_verify:' . $email, $code, now()->addMinutes(10));
+        \Illuminate\Support\Facades\Cache::put('email_verify_attempts:' . $email, 0, now()->addMinutes(10));
+
+        // Send email
+        try {
+            \Illuminate\Support\Facades\Mail::raw(
+                "Your verification code is: {$code}\n\nThis code expires in 10 minutes.\n\nIf you did not request this, please ignore this email.",
+                function ($message) use ($email) {
+                    $message->to($email)
+                            ->subject('Uhdor - Email Verification Code');
+                }
+            );
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send verification email: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => __('messages.code_send_failed'),
+            ], 500);
+        }
+
+        \Illuminate\Support\Facades\RateLimiter::hit($rateLimitKey, 3600);
+
+        return response()->json([
+            'success' => true,
+            'message' => __('messages.code_sent_success'),
+        ]);
+    })->name('register.send-code');
+
+    // Verify the code
+    Route::post('register/verify-code', function (\Illuminate\Http\Request $request) {
+        $request->validate([
+            'email' => 'required|string|email|max:255',
+            'code' => 'required|string|size:6',
+        ]);
+
+        $email = strtolower(trim($request->email));
+        $code = $request->code;
+
+        // Check attempt limit (max 5 wrong attempts)
+        $attempts = \Illuminate\Support\Facades\Cache::get('email_verify_attempts:' . $email, 0);
+        if ($attempts >= 5) {
+            \Illuminate\Support\Facades\Cache::forget('email_verify:' . $email);
+            \Illuminate\Support\Facades\Cache::forget('email_verify_attempts:' . $email);
+            return response()->json([
+                'success' => false,
+                'message' => __('messages.too_many_verify_attempts'),
+            ], 429);
+        }
+
+        $storedCode = \Illuminate\Support\Facades\Cache::get('email_verify:' . $email);
+
+        if (!$storedCode) {
+            return response()->json([
+                'success' => false,
+                'message' => __('messages.code_expired'),
+            ], 422);
+        }
+
+        if ($storedCode !== $code) {
+            \Illuminate\Support\Facades\Cache::increment('email_verify_attempts:' . $email);
+            return response()->json([
+                'success' => false,
+                'message' => __('messages.code_invalid'),
+            ], 422);
+        }
+
+        // Code is correct — generate a verification token
+        $token = bin2hex(random_bytes(32));
+        \Illuminate\Support\Facades\Cache::put('email_verified:' . $email, $token, now()->addMinutes(30));
+
+        // Clean up
+        \Illuminate\Support\Facades\Cache::forget('email_verify:' . $email);
+        \Illuminate\Support\Facades\Cache::forget('email_verify_attempts:' . $email);
+
+        return response()->json([
+            'success' => true,
+            'message' => __('messages.email_verified_success'),
+            'token' => $token,
+        ]);
+    })->name('register.verify-code');
+
     Route::post('register', function (\Illuminate\Http\Request $request, \App\Tenancy\Services\TenantProvisioner $provisioner) {
         $request->validate([
             'company_name' => 'required|string|max:255|unique:tenants,name',
+            'subdomain' => 'required|string|max:50|alpha_dash|not_in:www,admin,app',
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:tenants,email',
             'password' => 'required|confirmed|min:8',
+            'email_verification_token' => 'required|string',
         ]);
 
+        // Verify the email verification token
+        $email = strtolower(trim($request->email));
+        $storedToken = \Illuminate\Support\Facades\Cache::get('email_verified:' . $email);
+
+        if (!$storedToken || $storedToken !== $request->email_verification_token) {
+            return back()->withErrors(['email' => __('messages.email_not_verified')])->withInput();
+        }
+
         try {
-            // Generate a subdomain from company name (for database naming purposes only)
-            $subdomain = \Illuminate\Support\Str::slug($request->company_name);
-            
             // Provision Tenant
             $tenant = $provisioner->provision([
                 'name' => $request->company_name,
-                'subdomain' => $subdomain, // Still used for DB naming, not routing
+                'subdomain' => $request->subdomain,
                 'email' => $request->email,
                 'password' => $request->password,
                 'plan_id' => \App\Models\Plan::where('slug', 'free')->first()->id ?? 1,
             ]);
+
+            // Clean up verification token
+            \Illuminate\Support\Facades\Cache::forget('email_verified:' . $email);
 
             // Redirect to login page
             return redirect('/login')->with('success', __('Registration successful! Please login.'));
