@@ -756,6 +756,9 @@
             if (!emailVerified) {
                 e.preventDefault();
                 showAlert('error', '{{ __("messages.please_verify_email_first") }}');
+            } else {
+                // Re-enable email field so it gets submitted with the form
+                document.getElementById('emailInput').disabled = false;
             }
         });
 
