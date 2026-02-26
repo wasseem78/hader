@@ -149,6 +149,10 @@
                             <strong style="color: var(--text-primary); font-size: 13px;">{{ __('messages.account_holder_value') }}</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--glass-border);">
+                            <span style="color: var(--text-muted); font-size: 13px;">{{ __('messages.account_number') }}</span>
+                            <strong style="color: var(--text-primary); font-size: 13px; direction: ltr;">{{ __('messages.account_number_value') }}</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--glass-border);">
                             <span style="color: var(--text-muted); font-size: 13px;">{{ __('messages.iban') }}</span>
                             <strong style="color: var(--text-primary); font-size: 13px; direction: ltr;">{{ __('messages.iban_value') }}</strong>
                         </div>
@@ -171,10 +175,10 @@
                             <span>📧</span> {{ __('messages.support_email_value') }}
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
-                            <span>📱</span> {{ __('messages.support_phone_value') }}
+                            <span>📱</span> <a href="tel:+966542999195" style="color: var(--text-secondary); text-decoration: none;">{{ __('messages.support_phone_value') }}</a>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary);">
-                            <span>💬</span> {{ __('messages.support_whatsapp_value') }}
+                            <span>💬</span> <a href="https://wa.me/966542999195" target="_blank" style="color: #25d366; text-decoration: none;">{{ __('messages.support_whatsapp_value') }}</a>
                         </div>
                     </div>
                 </div>

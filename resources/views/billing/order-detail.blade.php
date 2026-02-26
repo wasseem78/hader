@@ -153,12 +153,36 @@
                 <h4 style="margin: 0; font-size: 14px;">🏦 {{ __('messages.payment_reminder') }}</h4>
             </div>
             <div class="card-body" style="padding: 20px;">
-                <p style="color: var(--text-muted); font-size: 12px; line-height: 1.6;">
+                <p style="color: var(--text-muted); font-size: 12px; line-height: 1.6; margin-bottom: 16px;">
                     {{ __('messages.payment_reminder_text') }}
                 </p>
+
+                {{-- Bank Details --}}
+                <div style="background: rgba(255,255,255,0.03); padding: 16px; border-radius: 10px; border: 1px solid var(--glass-border); margin-bottom: 16px;">
+                    <div style="display: grid; gap: 10px; font-size: 12px;">
+                        <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--glass-border);">
+                            <span style="color: var(--text-muted);">{{ __('messages.bank_name') }}</span>
+                            <strong style="color: var(--text-primary);">{{ __('messages.bank_name_value') }}</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--glass-border);">
+                            <span style="color: var(--text-muted);">{{ __('messages.account_holder') }}</span>
+                            <strong style="color: var(--text-primary);">{{ __('messages.account_holder_value') }}</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--glass-border);">
+                            <span style="color: var(--text-muted);">{{ __('messages.account_number') }}</span>
+                            <strong style="color: var(--text-primary); direction: ltr;">{{ __('messages.account_number_value') }}</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--glass-border);">
+                            <span style="color: var(--text-muted);">{{ __('messages.iban') }}</span>
+                            <strong style="color: var(--text-primary); direction: ltr;">{{ __('messages.iban_value') }}</strong>
+                        </div>
+                    </div>
+                </div>
+
                 <div style="margin-top: 12px; font-size: 12px; color: var(--text-secondary);">
                     <div>📧 {{ __('messages.support_email_value') }}</div>
                     <div>📱 {{ __('messages.support_phone_value') }}</div>
+                    <div><a href="https://wa.me/966542999195" target="_blank" style="color: #25d366; text-decoration: none;">💬 {{ __('messages.support_whatsapp_value') }}</a></div>
                 </div>
             </div>
         </div>
