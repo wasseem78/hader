@@ -1369,7 +1369,7 @@
     <div class="main-wrapper">
         <header class="top-bar">
             <!-- Hamburger (mobile only) -->
-            <button class="hamburger-btn" id="sidebarToggle" aria-label="{{ __('messages.toggle_menu') ?? 'Toggle Menu' }}">
+            <button class="hamburger-btn" id="sidebarToggle" onclick="toggleSidebar()" aria-label="{{ __('messages.toggle_menu') ?? 'Toggle Menu' }}">
                 <span></span>
                 <span></span>
                 <span></span>
@@ -1630,54 +1630,57 @@
     </script>
 
     <script>
-    // Mobile sidebar toggle — runs after DOM is ready
-    document.addEventListener('DOMContentLoaded', function() {
-        var sidebar  = document.querySelector('.sidebar');
-        var overlay  = document.getElementById('mobileOverlay');
-        var toggleBtn = document.getElementById('sidebarToggle');
+    // Mobile sidebar toggle
+    (function() {
+        function initSidebar() {
+            var sidebar   = document.querySelector('.sidebar');
+            var overlay   = document.getElementById('mobileOverlay');
+            var toggleBtn = document.getElementById('sidebarToggle');
 
-        if (!sidebar || !toggleBtn) return;
+            if (!sidebar || !toggleBtn) return;
+            if (window._sidebarReady) return; // prevent double-init
+            window._sidebarReady = true;
 
-        function openSidebar() {
-            sidebar.classList.add('mob-open');
-            if (overlay)   overlay.classList.add('is-open');
-            if (toggleBtn) toggleBtn.classList.add('is-open');
-            document.body.style.overflow = 'hidden';
-        }
+            function openSidebar() {
+                sidebar.classList.add('mob-open');
+                if (overlay) overlay.classList.add('is-open');
+                toggleBtn.classList.add('is-open');
+                document.body.style.overflow = 'hidden';
+            }
 
-        function closeSidebar() {
-            sidebar.classList.remove('mob-open');
-            if (overlay)   overlay.classList.remove('is-open');
-            if (toggleBtn) toggleBtn.classList.remove('is-open');
-            document.body.style.overflow = '';
-        }
+            function closeSidebar() {
+                sidebar.classList.remove('mob-open');
+                if (overlay) overlay.classList.remove('is-open');
+                toggleBtn.classList.remove('is-open');
+                document.body.style.overflow = '';
+            }
 
-        // Wire up hamburger button
-        toggleBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            sidebar.classList.contains('mob-open') ? closeSidebar() : openSidebar();
-        });
+            // Expose globally — called by onclick="toggleSidebar()" on the button
+            window.toggleSidebar = function() {
+                sidebar.classList.contains('mob-open') ? closeSidebar() : openSidebar();
+            };
 
-        // Overlay click → close
-        if (overlay) overlay.addEventListener('click', closeSidebar);
+            // Overlay click → close
+            if (overlay) overlay.addEventListener('click', closeSidebar);
 
-        // Resize → close on desktop
-        window.addEventListener('resize', function() {
-            if (window.innerWidth > 768) closeSidebar();
-        });
-
-        // Nav links → close on mobile tap
-        sidebar.querySelectorAll('.nav-item').forEach(function(link) {
-            link.addEventListener('click', function() {
-                if (window.innerWidth <= 768) closeSidebar();
+            // Resize → close on desktop
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) closeSidebar();
             });
-        });
 
-        // Also expose globally as fallback
-        window.toggleSidebar = function() {
-            sidebar.classList.contains('mob-open') ? closeSidebar() : openSidebar();
-        };
-    });
+            // Nav links → close on mobile tap
+            sidebar.querySelectorAll('.nav-item').forEach(function(link) {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 768) closeSidebar();
+                });
+            });
+        }
+
+        // Run immediately (script is at bottom of body, DOM is already parsed)
+        initSidebar();
+        // Fallback for edge-case browsers
+        document.addEventListener('DOMContentLoaded', initSidebar);
+    })();
     </script>
 </body>
 </html>
