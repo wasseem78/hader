@@ -4,7 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', config('app.name'))</title>
+    <title>@yield('title', config('app.name')) - {{ app()->getLocale() == 'ar' ? 'نظام حاضر' : 'Hadir System' }}</title>
+    @include('partials.seo-meta')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     @if(app()->getLocale() == 'ar')
@@ -400,6 +401,11 @@
             margin-bottom: 4px;
         }
 
+        .stat-info {
+            display: flex;
+            flex-direction: column;
+        }
+
         .stat-value {
             font-size: 28px;
             font-weight: 700;
@@ -540,6 +546,12 @@
             border: 1px solid rgba(100, 116, 139, 0.2);
         }
 
+        .badge-info {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
         .badge-primary {
             background: rgba(99, 102, 241, 0.15);
             color: #818cf8;
@@ -578,6 +590,17 @@
             border-radius: 10px;
             transition: all 0.2s;
             outline: none;
+        }
+
+        .form-control.is-invalid {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+        }
+
+        .invalid-feedback {
+            color: #f87171;
+            font-size: 12px;
+            margin-top: 4px;
         }
 
         .form-control:focus {
@@ -997,60 +1020,322 @@
             color: var(--text-muted);
         }
 
+        /* ==========================================
+         * RESPONSIVE DESIGN — Dashboard/Admin Panel
+         * ========================================== */
+
+        /* Hamburger button (hidden on desktop) */
+        .hamburger-btn {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            cursor: pointer;
+            padding: 0;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+        .hamburger-btn:hover { background: rgba(255,255,255,0.1); }
+        .hamburger-btn span {
+            display: block;
+            width: 18px;
+            height: 2px;
+            background: var(--text-secondary);
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        .hamburger-btn.is-open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+        .hamburger-btn.is-open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+        .hamburger-btn.is-open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+        /* Mobile overlay */
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            z-index: 99;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+        .mobile-overlay.is-open {
+            display: block;
+            animation: overlayFadeIn 0.25s ease;
+        }
+        @keyframes overlayFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Sidebar smooth slide transition */
+        .sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        /* ========================
+         * TABLET (≤ 1024px)
+         * ======================== */
+        @media (max-width: 1024px) {
+            .content-grid { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .main-content { padding: 20px; }
+            .top-bar { padding: 14px 20px; }
+        }
+
+        /* ========================
+         * MOBILE (≤ 768px)
+         * ======================== */
+        @media (max-width: 768px) {
+            /* Form grids → single column */
+            .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
+
+            /* Sidebar: use blade-rendered direction-specific transform */
+            .sidebar {
+                transform: translateX({{ app()->getLocale() == 'ar' ? '110%' : '-110%' }});
+                transition: transform 0.3s ease;
+                z-index: 9998 !important;
+            }
+            .sidebar.mob-open {
+                transform: translateX(0) !important;
+                z-index: 9998 !important;
+            }
+
+            /* Mobile overlay sits below sidebar */
+            .mobile-overlay { z-index: 9997; }
+
+            /* Top-bar must be ABOVE overlay so hamburger stays clickable */
+            .top-bar { z-index: 9999 !important; }
+
+            /* Remove sidebar margin from main wrapper */
+            .main-wrapper { margin-left: 0 !important; margin-right: 0 !important; }
+
+            /* Show hamburger button */
+            .hamburger-btn { display: flex; }
+
+            /* Top bar */
+            .top-bar { padding: 12px 16px; gap: 10px; }
+            .page-header-content h1 { font-size: 15px; }
+            .page-header-content p { font-size: 11px; }
+
+            /* Main content */
+            .main-content { padding: 16px; }
+
+            /* Stats */
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            .stat-card { padding: 14px; }
+            .stat-value { font-size: 22px; }
+
+            /* Cards */
+            .card-header { padding: 14px 16px; flex-wrap: wrap; gap: 10px; }
+            .card-body { padding: 16px; }
+            .form-card { padding: 18px; }
+
+            /* Tables: horizontal scroll */
+            .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            table th, table td { padding: 11px 12px; font-size: 12px; white-space: nowrap; }
+
+            /* Filters */
+            .filter-row { flex-direction: column; }
+            .filter-row .form-group { min-width: unset; width: 100%; }
+
+            /* Form actions */
+            .form-actions { flex-direction: column; }
+            .form-actions .btn { width: 100%; justify-content: center; }
+
+            /* Buttons */
+            .btn { padding: 9px 14px; font-size: 12px; }
+
+            /* Misc */
+            .header-actions { gap: 6px; }
+            .action-btns { flex-wrap: wrap; }
+            .quick-action:hover { transform: none; }
+        }
+
+        /* ========================
+         * SMALL MOBILE (≤ 480px)
+         * ======================== */
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .stat-value { font-size: 20px; }
+            .stat-icon { width: 36px; height: 36px; font-size: 16px; }
+            .main-content { padding: 12px; }
+            .top-bar { padding: 10px 12px; }
+            .page-header-content h1 { font-size: 14px; }
+            .card-header, .card-body { padding: 12px 14px; }
+            .form-card { padding: 14px; }
+            table th, table td { padding: 9px 10px; font-size: 11px; }
+            .form-actions { gap: 8px; }
+            .sidebar-header { padding: 16px; }
+            .nav-section { padding: 12px 8px; }
+        }
+
         @yield('styles')
     </style>
 </head>
 <body>
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay"></div>
+
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-header">
-            @if(auth()->user()->company && auth()->user()->company->logo)
-                <img src="{{ route('tenant.storage', ['path' => auth()->user()->company->logo]) }}" alt="Logo" class="sidebar-logo">
+            @if(auth()->user()->company_profile && auth()->user()->company_profile->logo)
+                <img src="{{ route('tenant.storage', ['path' => auth()->user()->company_profile->logo]) }}" alt="Logo" class="sidebar-logo">
             @else
                 <div class="logo-placeholder">✨</div>
             @endif
-            <span class="company-name">{{ auth()->user()->company?->name ?? __('messages.company_name') }}</span>
+            <span class="company-name">{{ auth()->user()->company_profile?->name ?? __('messages.company_name') }}</span>
         </div>
         
         <nav class="nav-section">
             <div class="nav-label">{{ __('messages.main_menu') ?? 'القائمة الرئيسية' }}</div>
+            @can('dashboard.view')
             <a href="{{ route('dashboard') }}" class="nav-item {{ request()->is('dashboard') ? 'active' : '' }}">
                 <span class="nav-icon">📊</span> {{ __('messages.dashboard') }}
             </a>
+            @endcan
+
+            @canany(['branches.view', 'departments.view', 'work-points.view', 'work-tasks.view', 'devices.view', 'employees.view', 'contracts.view'])
+            <div class="nav-label" style="margin-top: 20px;">{{ __('messages.organizational_structure') ?? 'الهيكل التنظيمي' }}</div>
+            @endcanany
+            @can('branches.view')
             <a href="{{ route('branches.index') }}" class="nav-item {{ request()->is('branches*') ? 'active' : '' }}">
                 <span class="nav-icon">🏢</span> {{ __('messages.branches') }}
             </a>
+            @endcan
+            @can('departments.view')
             <a href="{{ route('departments.index') }}" class="nav-item {{ request()->is('departments*') ? 'active' : '' }}">
                 <span class="nav-icon">🗂️</span> {{ __('messages.departments') }}
             </a>
+            @endcan
+            @can('work-points.view')
+            <a href="{{ route('work-points.index') }}" class="nav-item {{ request()->is('work-points*') ? 'active' : '' }}">
+                <span class="nav-icon">📍</span> {{ __('messages.work_points') }}
+            </a>
+            @endcan
+            @can('work-tasks.view')
+            <a href="{{ route('work-tasks.index') }}" class="nav-item {{ request()->is('work-tasks*') ? 'active' : '' }}">
+                <span class="nav-icon">📋</span> {{ __('messages.work_tasks') }}
+            </a>
+            @endcan
+            @can('devices.view')
             <a href="{{ route('devices.index') }}" class="nav-item {{ request()->is('devices*') ? 'active' : '' }}">
                 <span class="nav-icon">📱</span> {{ __('messages.devices') }}
             </a>
+            @endcan
+            @can('employees.view')
             <a href="{{ route('employees.index') }}" class="nav-item {{ request()->is('employees*') ? 'active' : '' }}">
                 <span class="nav-icon">👥</span> {{ __('messages.employees') }}
             </a>
+            @endcan
+            @can('contracts.view')
+            <a href="{{ route('contract-documents.index') }}" class="nav-item {{ request()->is('contract-documents*') ? 'active' : '' }}">
+                <span class="nav-icon">📄</span> {{ __('messages.contract_documents') }}
+            </a>
+            @endcan
+
+            @canany(['attendance.view', 'reports.view', 'analytics.view'])
+            <div class="nav-label" style="margin-top: 20px;">{{ __('messages.monitoring') ?? 'المراقبة والتقارير' }}</div>
+            @endcanany
+            @can('attendance.view')
             <a href="{{ route('attendance.index') }}" class="nav-item {{ request()->is('attendance*') ? 'active' : '' }}">
                 <span class="nav-icon">⏰</span> {{ __('messages.attendance') }}
             </a>
+            @endcan
+            @can('reports.view')
             <a href="{{ route('reports.index') }}" class="nav-item {{ request()->is('reports*') ? 'active' : '' }}">
                 <span class="nav-icon">📈</span> {{ __('messages.reports') }}
             </a>
+            @endcan
+            @can('analytics.view')
             <a href="{{ route('analytics.index') }}" class="nav-item {{ request()->is('analytics*') ? 'active' : '' }}">
                 <span class="nav-icon">📊</span> {{ __('messages.analytics') }}
             </a>
             <a href="{{ route('attendance-report.index') }}" class="nav-item {{ request()->is('attendance-report*') ? 'active' : '' }}">
                 <span class="nav-icon">📋</span> {{ __('messages.attendance_report') }}
             </a>
+            @endcan
             
+            <div class="nav-label" style="margin-top: 20px;">{{ __('messages.employee_portal') ?? 'بوابة الموظف' }}</div>
+            <a href="{{ route('employee.dashboard') }}" class="nav-item {{ request()->is('employee') ? 'active' : '' }}">
+                <span class="nav-icon">🏠</span> {{ __('messages.my_portal') }}
+            </a>
+            <a href="{{ route('employee.leaves.index') }}" class="nav-item {{ request()->is('employee/leaves*') ? 'active' : '' }}">
+                <span class="nav-icon">🏖️</span> {{ __('messages.my_leaves') }}
+            </a>
+            <a href="{{ route('employee.permissions.index') }}" class="nav-item {{ request()->is('employee/permissions*') ? 'active' : '' }}">
+                <span class="nav-icon">🕐</span> {{ __('messages.my_permissions') }}
+            </a>
+            <a href="{{ route('employee.corrections.index') }}" class="nav-item {{ request()->is('employee/corrections*') ? 'active' : '' }}">
+                <span class="nav-icon">✏️</span> {{ __('messages.my_corrections') }}
+            </a>
+
+            @canany(['shifts.view', 'time-off.view', 'users.view', 'settings.view', 'billing.view'])
             <div class="nav-label" style="margin-top: 20px;">{{ __('messages.management') ?? 'الإدارة' }}</div>
+            @endcanany
+            @can('shifts.view')
             <a href="{{ route('admin.shifts.index') }}" class="nav-item {{ request()->is('admin/shifts*') ? 'active' : '' }}">
                 <span class="nav-icon">📅</span> {{ __('messages.shifts') }}
             </a>
+            @endcan
+            @can('time-off.view')
+            <a href="{{ route('admin.time-off.index') }}" class="nav-item {{ request()->is('admin/time-off*') ? 'active' : '' }}">
+                <span class="nav-icon">📝</span> {{ __('messages.leave_management') }}
+            </a>
+            @endcan
+            @can('permission-requests.view')
+            <a href="{{ route('admin.permission-requests.index') }}" class="nav-item {{ request()->is('admin/permission-requests*') ? 'active' : '' }}">
+                <span class="nav-icon">🕐</span> {{ __('messages.permission_management') }}
+            </a>
+            @endcan
+            @can('attendance-corrections.view')
+            <a href="{{ route('admin.attendance-corrections.index') }}" class="nav-item {{ request()->is('admin/attendance-corrections*') ? 'active' : '' }}">
+                <span class="nav-icon">✏️</span> {{ __('messages.attendance_corrections') }}
+            </a>
+            @endcan
+            @can('users.view')
+            <a href="{{ route('admin.users.index') }}" class="nav-item {{ request()->is('admin/users*') ? 'active' : '' }}">
+                <span class="nav-icon">👤</span> {{ __('messages.user_management') ?? 'إدارة المستخدمين' }}
+            </a>
+            @endcan
+            @can('billing.view')
             <a href="{{ route('billing.index') }}" class="nav-item {{ request()->is('billing*') ? 'active' : '' }}">
                 <span class="nav-icon">💳</span> {{ __('messages.billing') }}
             </a>
+            @endcan
+
+            @canany(['payroll.view', 'salary-components.view', 'rewards-penalties.view', 'salary-advances.view'])
+            <div class="nav-label" style="margin-top: 20px;">{{ __('messages.payroll_section') }}</div>
+            @endcanany
+            @can('payroll.view')
+            <a href="{{ route('admin.payroll.index') }}" class="nav-item {{ request()->is('admin/payroll*') ? 'active' : '' }}">
+                <span class="nav-icon">💰</span> {{ __('messages.payroll') }}
+            </a>
+            @endcan
+            @can('salary-components.view')
+            <a href="{{ route('admin.salary-components.index') }}" class="nav-item {{ request()->is('admin/salary-components*') ? 'active' : '' }}">
+                <span class="nav-icon">📋</span> {{ __('messages.salary_components') }}
+            </a>
+            @endcan
+            @can('rewards-penalties.view')
+            <a href="{{ route('admin.rewards-penalties.index') }}" class="nav-item {{ request()->is('admin/rewards-penalties*') && !request()->is('admin/rewards-penalties/types*') ? 'active' : '' }}">
+                <span class="nav-icon">🏆</span> {{ __('messages.rewards_penalties') }}
+            </a>
+            @endcan
+            @can('salary-advances.view')
+            <a href="{{ route('admin.salary-advances.index') }}" class="nav-item {{ request()->is('admin/salary-advances*') ? 'active' : '' }}">
+                <span class="nav-icon">💸</span> {{ __('messages.salary_advances') ?? 'السلف' }}
+            </a>
+            @endcan
+
+            @can('settings.view')
             <a href="{{ route('admin.settings.index') }}" class="nav-item {{ request()->is('admin/settings*') ? 'active' : '' }}">
                 <span class="nav-icon">⚙️</span> {{ __('messages.settings') }}
+            </a>
+            @endcan
+            <a href="{{ route('notifications.index') }}" class="nav-item {{ request()->is('notifications*') ? 'active' : '' }}">
+                <span class="nav-icon">🔔</span> {{ __('messages.notifications') ?? 'الإشعارات' }}
             </a>
         </nav>
 
@@ -1083,11 +1368,39 @@
     <!-- Main Content -->
     <div class="main-wrapper">
         <header class="top-bar">
+            <!-- Hamburger (mobile only) -->
+            <button class="hamburger-btn" id="sidebarToggle" aria-label="{{ __('messages.toggle_menu') ?? 'Toggle Menu' }}">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
             <div class="page-header-content">
                 @yield('header')
             </div>
             <div class="header-actions">
                 @yield('header-actions')
+                <!-- Notification Bell -->
+                <div class="notification-wrapper" id="notificationWrapper">
+                    <button class="notification-bell" id="notificationBell" onclick="toggleNotifications()" title="{{ __('messages.notifications') ?? 'الإشعارات' }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                        <span class="notification-badge" id="notificationBadge" style="display:none;">0</span>
+                    </button>
+                    <div class="notification-dropdown" id="notificationDropdown">
+                        <div class="notification-dropdown-header">
+                            <span class="notification-dropdown-title">{{ __('messages.notifications') ?? 'الإشعارات' }}</span>
+                            <button class="notification-mark-all" onclick="markAllRead()" title="{{ __('messages.mark_all_read') ?? 'تعليم الكل كمقروء' }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            </button>
+                        </div>
+                        <div class="notification-list" id="notificationList">
+                            <div class="notification-empty">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                                <p>{{ __('messages.no_notifications') ?? 'لا توجد إشعارات' }}</p>
+                            </div>
+                        </div>
+                        <a href="/notifications" class="notification-view-all" onclick="event.stopPropagation(); window.location.href='/notifications';">{{ __('messages.view_all_notifications') ?? 'عرض جميع الإشعارات' }}</a>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -1113,6 +1426,258 @@
         </main>
     </div>
 
+    @include('components.help-widget')
+
     @yield('scripts')
+
+    <style>
+    .notification-wrapper { position: relative; }
+    .notification-bell {
+        position: relative; background: none; border: none; cursor: pointer;
+        padding: 8px; border-radius: 10px; color: var(--text-secondary, #64748b);
+        transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+    }
+    .notification-bell:hover { background: var(--bg-hover, rgba(0,0,0,0.05)); color: var(--text-primary, #1e293b); }
+    .notification-badge {
+        position: absolute; top: 2px; right: 2px;
+        min-width: 18px; height: 18px; padding: 0 5px;
+        background: #ef4444; color: #fff; font-size: 11px; font-weight: 700;
+        border-radius: 9px; display: flex; align-items: center; justify-content: center;
+        line-height: 1; border: 2px solid var(--bg-card, #fff);
+    }
+    .notification-dropdown {
+        display: none; position: fixed; top: auto;
+        width: 380px; max-width: calc(100vw - 24px); max-height: 480px;
+        background: var(--bg-card, #fff); border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+        z-index: 9999; overflow: hidden;
+    }
+    [dir="rtl"] .notification-dropdown { left: 12px; right: auto; }
+    [dir="ltr"] .notification-dropdown { right: 12px; left: auto; }
+    .notification-dropdown.show { display: block; animation: notifSlideIn 0.2s ease; }
+    .notification-view-all {
+        display: block; text-align: center; padding: 10px; font-size: 13px; font-weight: 600;
+        color: #818cf8; text-decoration: none; border-top: 1px solid var(--glass-border);
+        transition: background 0.2s;
+    }
+    .notification-view-all:hover { background: rgba(99,102,241,0.1); }
+    @keyframes notifSlideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    .notification-dropdown-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 16px 18px; border-bottom: 1px solid var(--border-color, #e2e8f0);
+    }
+    .notification-dropdown-title { font-weight: 700; font-size: 15px; color: var(--text-primary, #1e293b); }
+    .notification-mark-all {
+        background: none; border: none; cursor: pointer; padding: 6px;
+        border-radius: 8px; color: var(--text-secondary, #64748b); transition: all 0.2s;
+    }
+    .notification-mark-all:hover { background: var(--bg-hover, rgba(0,0,0,0.05)); color: var(--primary, #6366f1); }
+    .notification-list { max-height: 400px; overflow-y: auto; }
+    .notification-item {
+        display: flex; gap: 12px; padding: 14px 18px; cursor: pointer;
+        transition: background 0.15s; border-bottom: 1px solid var(--border-color, #f1f5f9); position: relative;
+    }
+    .notification-item:hover { background: var(--bg-hover, rgba(0,0,0,0.02)); }
+    .notification-item.unread { background: rgba(99,102,241,0.04); }
+    .notification-item.unread::before {
+        content: ''; position: absolute; width: 6px; height: 6px; border-radius: 50%;
+        background: #6366f1; top: 18px;
+    }
+    [dir="rtl"] .notification-item.unread::before { right: 8px; }
+    [dir="ltr"] .notification-item.unread::before { left: 8px; }
+    .notif-icon {
+        width: 38px; height: 38px; border-radius: 10px; display: flex;
+        align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+    }
+    .notif-content { flex: 1; min-width: 0; }
+    .notif-title { font-size: 13px; font-weight: 600; color: var(--text-primary, #1e293b); margin-bottom: 2px; line-height: 1.4; }
+    .notif-body { font-size: 12px; color: var(--text-secondary, #64748b); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .notif-time { font-size: 11px; color: var(--text-muted, #94a3b8); margin-top: 4px; }
+    .notification-empty {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        padding: 40px 20px; color: var(--text-muted, #94a3b8); gap: 8px;
+    }
+    .notification-empty p { font-size: 13px; }
+    </style>
+    <script>
+    (function() {
+        let dropdownOpen = false;
+        const iconMap = {
+            'clock': '⏰', 'calendar': '📅', 'banknotes': '💰', 'currency': '💵',
+            'clock-rotate': '🔄', 'file-text': '📄', 'timer': '⏱️', 'hand': '✋',
+            'pencil': '✏️', 'star': '⭐', 'bell': '🔔', 'check-circle': '✅', 'x-circle': '❌'
+        };
+        const colorMap = {
+            'orange': 'rgba(249,115,22,0.1)', 'green': 'rgba(34,197,94,0.1)',
+            'emerald': 'rgba(16,185,129,0.1)', 'yellow': 'rgba(234,179,8,0.1)',
+            'purple': 'rgba(168,85,247,0.1)', 'red': 'rgba(239,68,68,0.1)',
+            'amber': 'rgba(245,158,11,0.1)', 'teal': 'rgba(20,184,166,0.1)',
+            'slate': 'rgba(100,116,139,0.1)', 'gold': 'rgba(234,179,8,0.1)',
+            'blue': 'rgba(99,102,241,0.1)'
+        };
+
+        // Navigate to notification - global function for onclick fallback
+        window.goToNotification = function(id, href, ev) {
+            if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+            if (id) {
+                fetch('/notifications/' + id + '/read', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    }
+                }).catch(function(){});
+            }
+            document.querySelectorAll('.notification-dropdown').forEach(function(d) { d.classList.remove('show'); });
+            dropdownOpen = false;
+            window.location.href = href || '/notifications';
+        };
+
+        // Capture-phase handler: fires BEFORE any bubbling handlers
+        document.addEventListener('click', function(e) {
+            var item = e.target.closest('.notification-item');
+            if (!item) return;
+            e.stopPropagation();
+            e.preventDefault();
+            var id = item.getAttribute('data-id');
+            var href = item.getAttribute('data-href') || '/notifications';
+            window.goToNotification(id, href);
+        }, true);
+
+        window.toggleNotifications = function() {
+            const dd = document.querySelector('.notification-dropdown');
+            if (!dd) return;
+            dropdownOpen = !dropdownOpen;
+            if (dropdownOpen) {
+                const bell = document.querySelector('.notification-bell');
+                const rect = bell.getBoundingClientRect();
+                dd.style.top = (rect.bottom + 8) + 'px';
+            }
+            dd.classList.toggle('show', dropdownOpen);
+            if (dropdownOpen) loadNotifications();
+        };
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.notification-wrapper')) {
+                document.querySelectorAll('.notification-dropdown').forEach(d => d.classList.remove('show'));
+                dropdownOpen = false;
+            }
+        });
+
+        function updateBadge(count) {
+            document.querySelectorAll('[id^="notificationBadge"]').forEach(b => {
+                if (count > 0) { b.textContent = count > 99 ? '99+' : count; b.style.display = 'flex'; }
+                else { b.style.display = 'none'; }
+            });
+        }
+
+        function renderNotifications(items) {
+            document.querySelectorAll('.notification-list').forEach(list => {
+                if (!items || items.length === 0) {
+                    list.innerHTML = '<div class="notification-empty"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><p>لا توجد إشعارات</p></div>';
+                    return;
+                }
+                list.innerHTML = items.map(n => {
+                    var nid = parseInt(n.id) || 0;
+                    var itemHref = n.action_url || '/notifications';
+                    return '<div class="notification-item ' + (n.is_read ? '' : 'unread') + '" data-id="' + nid + '" data-read="' + (n.is_read ? 'true' : 'false') + '" data-href="' + escapeHtml(itemHref) + '" onclick="goToNotification(\'' + nid + '\',\'' + escapeHtml(itemHref) + '\',event)">'
+                        + '<div class="notif-icon" style="background:' + (colorMap[n.color] || colorMap.blue) + '">' + (iconMap[n.icon] || '🔔') + '</div>'
+                        + '<div class="notif-content">'
+                        + '<div class="notif-title">' + escapeHtml(n.title) + '</div>'
+                        + (n.body ? '<div class="notif-body">' + escapeHtml(n.body) + '</div>' : '')
+                        + '<div class="notif-time">' + escapeHtml(n.time_ago || '') + '</div>'
+                        + '</div>'
+                        + '</div>';
+                }).join('');
+            });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            var d = document.createElement('div'); d.textContent = text; return d.innerHTML;
+        }
+
+        window.loadNotifications = function() {
+            fetch('/notifications/api', { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.json())
+            .then(data => {
+                updateBadge(data.unread_count);
+                renderNotifications(data.notifications);
+            }).catch(() => {});
+        };
+
+        window.markAllRead = function() {
+            fetch('/notifications/read-all', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' }
+            }).then(() => {
+                document.querySelectorAll('.notification-item.unread').forEach(i => i.classList.remove('unread'));
+                updateBadge(0);
+            });
+        };
+
+        function fetchUnreadCount() {
+            fetch('/notifications/unread-count', { headers: { 'Accept': 'application/json' } })
+            .then(r => r.json())
+            .then(data => updateBadge(data.unread_count))
+            .catch(() => {});
+        }
+
+        // Poll every 30 seconds
+        fetchUnreadCount();
+        setInterval(fetchUnreadCount, 30000);
+    })();
+    </script>
+
+    <script>
+    // Mobile sidebar toggle — runs after DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        var sidebar  = document.querySelector('.sidebar');
+        var overlay  = document.getElementById('mobileOverlay');
+        var toggleBtn = document.getElementById('sidebarToggle');
+
+        if (!sidebar || !toggleBtn) return;
+
+        function openSidebar() {
+            sidebar.classList.add('mob-open');
+            if (overlay)   overlay.classList.add('is-open');
+            if (toggleBtn) toggleBtn.classList.add('is-open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove('mob-open');
+            if (overlay)   overlay.classList.remove('is-open');
+            if (toggleBtn) toggleBtn.classList.remove('is-open');
+            document.body.style.overflow = '';
+        }
+
+        // Wire up hamburger button
+        toggleBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            sidebar.classList.contains('mob-open') ? closeSidebar() : openSidebar();
+        });
+
+        // Overlay click → close
+        if (overlay) overlay.addEventListener('click', closeSidebar);
+
+        // Resize → close on desktop
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) closeSidebar();
+        });
+
+        // Nav links → close on mobile tap
+        sidebar.querySelectorAll('.nav-item').forEach(function(link) {
+            link.addEventListener('click', function() {
+                if (window.innerWidth <= 768) closeSidebar();
+            });
+        });
+
+        // Also expose globally as fallback
+        window.toggleSidebar = function() {
+            sidebar.classList.contains('mob-open') ? closeSidebar() : openSidebar();
+        };
+    });
+    </script>
 </body>
 </html>

@@ -3,10 +3,20 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ app()->getLocale() == 'ar' ? 'نظام حاضر - إدارة الحضور الذكية' : 'Dawam - Smart Attendance Management' }}</title>
-    <meta name="description" content="{{ app()->getLocale() == 'ar' ? 'نظام حضور وانصراف متكامل مع أجهزة البصمة ZKTeco - حلول ذكية للشركات' : 'Complete attendance management system with ZKTeco biometric integration - Smart solutions for enterprises' }}">
+    <title>{{ app()->getLocale() == 'ar' ? 'نظام حاضر - نظام موارد بشرية وحضور متكامل' : 'Hadir - Complete HR & Attendance System' }}</title>
+    <meta name="description" content="{{ app()->getLocale() == 'ar' ? 'نظام حاضر - نظام موارد بشرية متكامل: حضور وانصراف، رواتب، إجازات، سلف، ورديات، عقود، أذونات، إدارة موظفين وأقسام مع أجهزة ZKTeco. حلول ذكية للشركات.' : 'Hadir - Complete HR system: attendance, payroll, leaves, advances, shifts, contracts, permissions, employee & department management with ZKTeco biometric devices. Smart enterprise solutions.' }}">
+    <meta name="keywords" content="{{ app()->getLocale() == 'ar' ? 'نظام موارد بشرية، نظام حضور وانصراف، بصمة، حاضر، إدارة موظفين، ZKTeco، رواتب، إجازات، ورديات، سلف، عقود، أذونات، تصحيح حضور، إدارة أقسام' : 'HR system, attendance system, biometric, hadir, employee management, ZKTeco, payroll, leaves, shifts, salary advances, contracts, permissions, attendance corrections, department management' }}">
+    <meta name="author" content="Hadir">
+    <meta name="robots" content="index, follow">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{ app()->getLocale() == 'ar' ? 'نظام حاضر - نظام موارد بشرية وحضور متكامل' : 'Hadir - Complete HR & Attendance System' }}">
+    <meta property="og:description" content="{{ app()->getLocale() == 'ar' ? 'نظام موارد بشرية متكامل: حضور، رواتب، إجازات، سلف، ورديات، عقود - حلول ذكية للشركات' : 'Complete HR system: attendance, payroll, leaves, advances, shifts, contracts - Smart enterprise solutions' }}">
+    <meta property="og:image" content="/logo.png">
     
-    <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
@@ -24,7 +34,7 @@
             --text-muted: #94a3b8;
         }
         
-        html { scroll-behavior: smooth; }
+        html { scroll-behavior: smooth; overflow-x: hidden; }
         
         body {
             font-family: {!! "'Tajawal', -apple-system, BlinkMacSystemFont, sans-serif" !!};
@@ -32,6 +42,7 @@
             color: var(--text-light);
             line-height: 1.6;
             overflow-x: hidden;
+            max-width: 100vw;
         }
         
         /* Animated Background */
@@ -444,15 +455,15 @@
         
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 32px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
         }
         
         .feature-card {
             background: linear-gradient(145deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.6));
             border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 24px;
-            padding: 36px;
+            padding: 28px;
             transition: all 0.4s;
         }
         
@@ -479,6 +490,12 @@
         .feature-icon.blue { background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(99, 102, 241, 0.2)); }
         .feature-icon.pink { background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(219, 39, 119, 0.2)); }
         .feature-icon.cyan { background: linear-gradient(135deg, rgba(34, 211, 238, 0.2), rgba(6, 182, 212, 0.2)); }
+        .feature-icon.red { background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.2)); }
+        .feature-icon.amber { background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.2)); }
+        .feature-icon.teal { background: linear-gradient(135deg, rgba(20, 184, 166, 0.2), rgba(13, 148, 136, 0.2)); }
+        .feature-icon.indigo { background: linear-gradient(135deg, rgba(129, 140, 248, 0.2), rgba(99, 102, 241, 0.2)); }
+        .feature-icon.emerald { background: linear-gradient(135deg, rgba(52, 211, 153, 0.2), rgba(16, 185, 129, 0.2)); }
+        .feature-icon.violet { background: linear-gradient(135deg, rgba(167, 139, 250, 0.2), rgba(139, 92, 246, 0.2)); }
         
         .feature-title {
             font-size: 20px;
@@ -551,8 +568,8 @@
         
         .pricing-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 32px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
             margin-top: 48px;
         }
         
@@ -740,29 +757,227 @@
             color: #fff;
         }
         
-        /* Responsive */
+        /* ==========================================
+         * RESPONSIVE DESIGN — Landing Page
+         * ========================================== */
+
+        /* Hamburger button (hidden on desktop) */
+        .hamburger-menu {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 10px;
+            cursor: pointer;
+            padding: 0;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        .hamburger-menu:hover { background: rgba(255,255,255,0.14); }
+        .hamburger-menu span {
+            display: block;
+            width: 18px;
+            height: 2px;
+            background: rgba(255,255,255,0.85);
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        .hamburger-menu.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+        .hamburger-menu.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+        .hamburger-menu.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+        /* Mobile full-screen nav */
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 15, 30, 0.97);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: 1001;
+            padding: 90px 32px 40px;
+            flex-direction: column;
+            gap: 4px;
+            overflow-y: auto;
+        }
+        .mobile-nav.open { display: flex; animation: mobileNavIn 0.28s ease; }
+        @keyframes mobileNavIn {
+            from { opacity: 0; transform: translateY(-12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .mobile-nav a.mnav-link {
+            color: rgba(255,255,255,0.75);
+            text-decoration: none;
+            font-size: 22px;
+            font-weight: 600;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            transition: color 0.2s;
+            display: block;
+        }
+        .mobile-nav a.mnav-link:hover { color: #fff; }
+        .mobile-nav-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 28px;
+        }
+        .mobile-nav-btns a { text-align: center; justify-content: center; }
+        .mobile-nav-lang {
+            display: flex;
+            gap: 10px;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.07);
+        }
+        .mobile-nav-close {
+            position: absolute;
+            top: 20px;
+            {{ app()->getLocale() == 'ar' ? 'left' : 'right' }}: 20px;
+            width: 44px;
+            height: 44px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 22px;
+            color: rgba(255,255,255,0.6);
+            transition: all 0.2s;
+            line-height: 1;
+        }
+        .mobile-nav-close:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+        /* Pricing comparison table: horizontal scroll on mobile */
+        .pricing-comparison-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+        /* Billing cycle toggle: wrap on mobile */
+        .billing-cycle-wrap { flex-wrap: wrap; justify-content: center; }
+
+        /* Billing cycle buttons */
+        .lp-cycle-btn {
+            padding: 10px 20px;
+            font-size: 13px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+
+        /* ========================
+         * TABLET (≤ 1024px)
+         * ======================== */
         @media (max-width: 1024px) {
-            .hero-container { grid-template-columns: 1fr; text-align: center; }
+            .hero-container { grid-template-columns: 1fr; text-align: center; gap: 40px; }
             .hero-content p { margin: 0 auto 40px; }
-            .hero-buttons { justify-content: center; }
-            .hero-stats { justify-content: center; }
+            .hero-buttons { justify-content: center; flex-wrap: wrap; }
+            .hero-stats { justify-content: center; flex-wrap: wrap; }
             .hero-visual { display: none; }
             .features-grid { grid-template-columns: repeat(2, 1fr); }
             .devices-showcase { grid-template-columns: repeat(2, 1fr); }
-            .pricing-grid { grid-template-columns: 1fr; max-width: 400px; margin-left: auto; margin-right: auto; }
+            .pricing-grid { grid-template-columns: repeat(2, 1fr); }
             .pricing-card.featured { transform: scale(1); }
+            .features { padding: 80px 32px; }
+            .devices  { padding: 80px 32px; }
+            .pricing  { padding: 80px 32px; }
+            .cta      { padding: 80px 32px; }
         }
-        
+
+        /* ========================
+         * MOBILE (≤ 768px)
+         * ======================== */
         @media (max-width: 768px) {
-            .nav { padding: 16px 20px; }
+            /* Nav: hide everything except logo + hamburger */
+            .nav { padding: 14px 20px; gap: 8px; }
             .nav-links { display: none; }
-            .hero { padding: 120px 20px 60px; }
+            .nav-buttons { display: none; }   /* hide lang-switch + all buttons */
+            .hamburger-menu { display: flex; }
+
+            /* Hero */
+            .hero { padding: 100px 20px 56px; }
             .hero-content h1 { font-size: 36px; }
-            .section-title { font-size: 32px; }
-            .features-grid { grid-template-columns: 1fr; }
+            .hero-buttons { gap: 12px; }
+            .hero-buttons .btn { width: 100%; justify-content: center; }
+            .hero-stats { gap: 28px; flex-wrap: wrap; }
+            .stat-value { font-size: 30px; }
+
+            /* Sections */
+            .section-title { font-size: 30px; }
+            .section-desc  { font-size: 16px; }
+            .features { padding: 60px 20px; }
+            .devices  { padding: 60px 20px; }
+            .pricing  { padding: 60px 20px; }
+            .cta      { padding: 60px 20px; }
+            .section-header { margin-bottom: 40px; }
+
+            /* Grids */
+            .features-grid    { grid-template-columns: 1fr; gap: 16px; }
+            .devices-showcase { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+            .pricing-grid     { grid-template-columns: 1fr; }
+
+            /* CTA */
+            .cta-box   { padding: 40px 24px; border-radius: 20px; }
+            .cta-title { font-size: 26px; }
+            .cta-desc  { font-size: 16px; }
+            .cta-box .btn { font-size: 16px !important; padding: 14px 28px !important; }
+
+            /* Footer */
+            .footer         { padding: 40px 20px 20px; }
+            .footer-content { flex-direction: column; gap: 20px; text-align: center; }
+            .footer-links   { flex-wrap: wrap; justify-content: center; gap: 16px; }
+
+            /* Pricing card */
+            .pricing-card { padding: 28px; }
+        }
+
+        /* ========================
+         * SMALL MOBILE (≤ 480px)
+         * ======================== */
+        @media (max-width: 480px) {
+            /* Nav */
+            .nav { padding: 12px 16px; }
+            .logo-text { font-size: 20px; }
+            .logo-img  { width: 36px; height: 36px; }
+
+            /* Hero */
+            .hero { padding: 85px 16px 48px; }
+            .hero-content h1 { font-size: 28px; line-height: 1.2; }
+            .hero-content p  { font-size: 16px; }
+            .hero-stats { gap: 20px; }
+            .stat-value { font-size: 26px; }
+
+            /* Sections */
+            .section-title  { font-size: 24px; }
+            .section-badge  { font-size: 12px; padding: 6px 14px; }
+            .features { padding: 48px 16px; }
+            .devices  { padding: 48px 16px; }
+            .pricing  { padding: 48px 16px; }
+            .cta      { padding: 48px 16px; }
+
+            /* Grids */
             .devices-showcase { grid-template-columns: 1fr; }
-            .cta-box { padding: 40px 24px; }
-            .cta-title { font-size: 28px; }
+
+            /* Billing cycle buttons */
+            .lp-cycle-btn { padding: 7px 10px; font-size: 11px; }
+
+            /* CTA */
+            .cta-box   { padding: 30px 16px; border-radius: 16px; }
+            .cta-title { font-size: 22px; }
+
+            /* Footer */
+            .footer      { padding: 32px 16px 16px; }
+            .footer-links { gap: 12px; font-size: 12px; }
+            .footer-text  { font-size: 12px; }
         }
     </style>
 </head>
@@ -773,13 +988,14 @@
     <!-- Navigation -->
     <nav class="nav">
         <div class="logo">
-            <img src="{{ asset('logo.png') }}" alt="Hadir" class="logo-img">
+            <img src="/logo.png" alt="Hadir" class="logo-img">
             <span class="logo-text">{{ app()->getLocale() == 'ar' ? 'نظام حاضر' : 'Hadir' }}</span>
         </div>
         
         <div class="nav-links">
             <a href="#features">{{ app()->getLocale() == 'ar' ? 'المميزات' : 'Features' }}</a>
             <a href="#devices">{{ app()->getLocale() == 'ar' ? 'الأجهزة' : 'Devices' }}</a>
+            <a href="#pricing">{{ app()->getLocale() == 'ar' ? 'الأسعار' : 'Pricing' }}</a>
         </div>
         
         <div class="nav-buttons">
@@ -790,20 +1006,42 @@
             <a href="{{ route('login') }}" class="btn btn-outline">{{ app()->getLocale() == 'ar' ? 'تسجيل الدخول' : 'Login' }}</a>
             <a href="{{ route('register') }}" class="btn btn-primary">{{ app()->getLocale() == 'ar' ? 'ابدأ مجاناً' : 'Start Free' }}</a>
         </div>
+        <!-- Hamburger (mobile only) -->
+        <button class="hamburger-menu" id="hamburgerBtn" onclick="openMobileNav()" aria-label="Menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
     </nav>
+
+    <!-- Mobile Navigation Drawer -->
+    <div class="mobile-nav" id="mobileNav">
+        <button class="mobile-nav-close" onclick="closeMobileNav()" aria-label="Close">✕</button>
+        <a href="#features" class="mnav-link" onclick="closeMobileNav()">{{ app()->getLocale() == 'ar' ? '✨ المميزات' : '✨ Features' }}</a>
+        <a href="#devices"  class="mnav-link" onclick="closeMobileNav()">{{ app()->getLocale() == 'ar' ? '🔧 الأجهزة' : '🔧 Devices' }}</a>
+        <a href="#pricing"  class="mnav-link" onclick="closeMobileNav()">{{ app()->getLocale() == 'ar' ? '💰 الأسعار' : '💰 Pricing' }}</a>
+        <div class="mobile-nav-btns">
+            <a href="{{ route('login') }}"    class="btn btn-outline">{{ app()->getLocale() == 'ar' ? 'تسجيل الدخول' : 'Login' }}</a>
+            <a href="{{ route('register') }}" class="btn btn-primary">🚀 {{ app()->getLocale() == 'ar' ? 'ابدأ مجاناً' : 'Start Free' }}</a>
+        </div>
+        <div class="mobile-nav-lang">
+            <a href="{{ route('lang.switch', 'ar') }}" class="lang-btn {{ app()->getLocale() == 'ar' ? 'active' : '' }}">العربية</a>
+            <a href="{{ route('lang.switch', 'en') }}" class="lang-btn {{ app()->getLocale() == 'en' ? 'active' : '' }}">English</a>
+        </div>
+    </div>
     
     <!-- Hero Section -->
     <section class="hero">
         <div class="hero-container">
             <div class="hero-content">
                 <h1>
-                    {{ app()->getLocale() == 'ar' ? 'إدارة الحضور' : 'Attendance Management' }}<br>
-                    <span>{{ app()->getLocale() == 'ar' ? 'بذكاء ودقة' : 'Smart & Precise' }}</span>
+                    {{ app()->getLocale() == 'ar' ? 'نظام موارد بشرية' : 'Complete HR System' }}<br>
+                    <span>{{ app()->getLocale() == 'ar' ? 'متكامل وذكي' : 'Smart & Integrated' }}</span>
                 </h1>
                 <p>
                     {{ app()->getLocale() == 'ar' 
-                        ? 'نظام متكامل لإدارة الحضور والانصراف مع دعم كامل لأجهزة البصمة ZKTeco. راقب موظفيك، أنشئ التقارير، وأدر فروعك من مكان واحد.'
-                        : 'Complete attendance management system with full ZKTeco biometric device integration. Monitor your employees, generate reports, and manage branches from one place.' 
+                        ? 'نظام متكامل لإدارة الموارد البشرية: حضور وانصراف، رواتب، إجازات، سلف، ورديات، عقود، وأذونات مع دعم أجهزة ZKTeco. كل ما تحتاجه في مكان واحد.'
+                        : 'All-in-one HR management: attendance, payroll, leaves, advances, shifts, contracts, and permissions with ZKTeco device support. Everything you need in one place.' 
                     }}
                 </p>
                 <div class="hero-buttons">
@@ -884,45 +1122,81 @@
         <div class="section-container">
             <div class="section-header">
                 <span class="section-badge">{{ app()->getLocale() == 'ar' ? '✨ المميزات' : '✨ Features' }}</span>
-                <h2 class="section-title">{{ app()->getLocale() == 'ar' ? 'كل ما تحتاجه لإدارة الحضور' : 'Everything You Need' }}</h2>
-                <p class="section-desc">{{ app()->getLocale() == 'ar' ? 'أدوات متكاملة وقوية لإدارة حضور وانصراف موظفيك بكفاءة عالية' : 'Comprehensive and powerful tools to manage your employee attendance efficiently' }}</p>
+                <h2 class="section-title">{{ app()->getLocale() == 'ar' ? 'نظام موارد بشرية شامل' : 'Complete HR Platform' }}</h2>
+                <p class="section-desc">{{ app()->getLocale() == 'ar' ? 'كل ما تحتاجه لإدارة الموارد البشرية والحضور والرواتب في منصة واحدة متكاملة' : 'Everything you need to manage HR, attendance, and payroll in one integrated platform' }}</p>
             </div>
             
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon purple">🔗</div>
                     <h3 class="feature-title">{{ app()->getLocale() == 'ar' ? 'تكامل ZKTeco' : 'ZKTeco Integration' }}</h3>
-                    <p class="feature-desc">{{ app()->getLocale() == 'ar' ? 'ربط تلقائي مع جميع أجهزة ZKTeco للبصمة والوجه مع مزامنة فورية للبيانات' : 'Automatic integration with all ZKTeco fingerprint and face recognition devices with real-time data sync' }}</p>
+                    <p class="feature-desc">{{ app()->getLocale() == 'ar' ? 'ربط تلقائي مع أجهزة البصمة والوجه مع مزامنة فورية' : 'Auto-sync with fingerprint and face recognition devices' }}</p>
                 </div>
                 
                 <div class="feature-card">
-                    <div class="feature-icon orange">📊</div>
-                    <h3 class="feature-title">{{ app()->getLocale() == 'ar' ? 'تقارير متقدمة' : 'Advanced Reports' }}</h3>
-                    <p class="feature-desc">{{ app()->getLocale() == 'ar' ? 'تقارير تفصيلية ورسوم بيانية تفاعلية مع إمكانية التصدير بصيغ متعددة' : 'Detailed reports and interactive charts with multi-format export capabilities' }}</p>
+                    <div class="feature-icon green">💰</div>
+                    <h3 class="feature-title">{{ app()->getLocale() == 'ar' ? 'نظام الرواتب' : 'Payroll System' }}</h3>
+                    <p class="feature-desc">{{ app()->getLocale() == 'ar' ? 'حساب تلقائي للرواتب مع البدلات والخصومات والسلف والعمل الإضافي' : 'Auto salary calculation with allowances, deductions, advances, and overtime' }}</p>
                 </div>
                 
                 <div class="feature-card">
-                    <div class="feature-icon green">🏢</div>
-                    <h3 class="feature-title">{{ app()->getLocale() == 'ar' ? 'إدارة الفروع' : 'Branch Management' }}</h3>
-                    <p class="feature-desc">{{ app()->getLocale() == 'ar' ? 'إدارة متعددة الفروع مع لوحة تحكم مركزية وصلاحيات مخصصة لكل فرع' : 'Multi-branch management with centralized dashboard and custom permissions per branch' }}</p>
+                    <div class="feature-icon blue">🏖️</div>
+                    <h3 class="feature-title">{{ app()->getLocale() == 'ar' ? 'إدارة الإجازات' : 'Leave Management' }}</h3>
+                    <p class="feature-desc">{{ app()->getLocale() == 'ar' ? 'طلبات إجازة إلكترونية مع أرصدة تلقائية وسير عمل للموافقات' : 'Digital leave requests with auto balances and approval workflows' }}</p>
                 </div>
                 
                 <div class="feature-card">
-                    <div class="feature-icon blue">📱</div>
-                    <h3 class="feature-title">{{ app()->getLocale() == 'ar' ? 'تطبيق الجوال' : 'Mobile App' }}</h3>
-                    <p class="feature-desc">{{ app()->getLocale() == 'ar' ? 'تطبيق للجوال للحضور عن بعد مع GPS ومراقبة مباشرة للمديرين' : 'Mobile app for remote attendance with GPS and real-time monitoring for managers' }}</p>
+                    <div class="feature-icon orange">👥</div>
+                    <h3 class="feature-title">{{ app()->getLocale() == 'ar' ? 'إدارة الموظفين' : 'Employee Management' }}</h3>
+                    <p class="feature-desc">{{ app()->getLocale() == 'ar' ? 'ملفات شاملة للموظفين مع الوثائق والبيانات الشخصية والوظيفية' : 'Complete employee profiles with documents and personal data' }}</p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon pink">⏰</div>
                     <h3 class="feature-title">{{ app()->getLocale() == 'ar' ? 'جداول الورديات' : 'Shift Schedules' }}</h3>
-                    <p class="feature-desc">{{ app()->getLocale() == 'ar' ? 'إنشاء وإدارة جداول الورديات المرنة مع دعم المناوبات والعمل الإضافي' : 'Create and manage flexible shift schedules with overtime and rotation support' }}</p>
+                    <p class="feature-desc">{{ app()->getLocale() == 'ar' ? 'ورديات مرنة مع مناوبات ودعم العمل الإضافي والتبديل' : 'Flexible shifts with rotations, overtime, and swap support' }}</p>
                 </div>
                 
                 <div class="feature-card">
-                    <div class="feature-icon cyan">🔔</div>
-                    <h3 class="feature-title">{{ app()->getLocale() == 'ar' ? 'التنبيهات الذكية' : 'Smart Alerts' }}</h3>
-                    <p class="feature-desc">{{ app()->getLocale() == 'ar' ? 'إشعارات فورية للتأخير والغياب والأحداث المهمة عبر البريد والتطبيق' : 'Instant notifications for lateness, absence, and important events via email and app' }}</p>
+                    <div class="feature-icon amber">💵</div>
+                    <h3 class="feature-title">{{ app()->getLocale() == 'ar' ? 'السلف والمقدمات' : 'Salary Advances' }}</h3>
+                    <p class="feature-desc">{{ app()->getLocale() == 'ar' ? 'نظام سلف متكامل مع أقساط وخصم تلقائي من الراتب' : 'Advance system with installments and auto payroll deduction' }}</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon cyan">📊</div>
+                    <h3 class="feature-title">{{ app()->getLocale() == 'ar' ? 'تقارير متقدمة' : 'Advanced Reports' }}</h3>
+                    <p class="feature-desc">{{ app()->getLocale() == 'ar' ? 'تقارير تفصيلية ورسوم بيانية تفاعلية مع تصدير متعدد' : 'Detailed reports with interactive charts and multi-format export' }}</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon red">📝</div>
+                    <h3 class="feature-title">{{ app()->getLocale() == 'ar' ? 'إدارة العقود' : 'Contract Management' }}</h3>
+                    <p class="feature-desc">{{ app()->getLocale() == 'ar' ? 'تتبع عقود الموظفين مع تنبيهات الانتهاء والتجديد التلقائي' : 'Track employee contracts with expiry alerts and auto-renewal' }}</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon teal">🏢</div>
+                    <h3 class="feature-title">{{ app()->getLocale() == 'ar' ? 'إدارة الفروع والأقسام' : 'Branches & Departments' }}</h3>
+                    <p class="feature-desc">{{ app()->getLocale() == 'ar' ? 'إدارة متعددة الفروع والأقسام مع لوحة تحكم مركزية' : 'Multi-branch and department management with central dashboard' }}</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon indigo">✋</div>
+                    <h3 class="feature-title">{{ app()->getLocale() == 'ar' ? 'الأذونات والتصحيحات' : 'Permissions & Corrections' }}</h3>
+                    <p class="feature-desc">{{ app()->getLocale() == 'ar' ? 'طلبات أذونات خروج وتصحيح حضور إلكترونية مع موافقات' : 'Digital permission requests and attendance corrections with approvals' }}</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon emerald">🔔</div>
+                    <h3 class="feature-title">{{ app()->getLocale() == 'ar' ? 'التنبيهات والإشعارات' : 'Smart Notifications' }}</h3>
+                    <p class="feature-desc">{{ app()->getLocale() == 'ar' ? 'إشعارات فورية للتأخير والغياب والطلبات عبر البريد والنظام' : 'Instant alerts for lateness, absence, and requests via email & app' }}</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon violet">⭐</div>
+                    <h3 class="feature-title">{{ app()->getLocale() == 'ar' ? 'نقاط العمل والمهام' : 'Work Points & Tasks' }}</h3>
+                    <p class="feature-desc">{{ app()->getLocale() == 'ar' ? 'نظام تقييم أداء بالنقاط وتوزيع مهام العمل ومتابعتها' : 'Performance scoring system with task assignment and tracking' }}</p>
                 </div>
             </div>
         </div>
@@ -962,68 +1236,296 @@
         </div>
     </section>
     
-    <!-- Pricing Section - Hidden for now -->
-    {{--
+    <!-- Pricing Section -->
     <section class="pricing" id="pricing">
         <div class="section-container">
             <div class="section-header">
                 <span class="section-badge">{{ app()->getLocale() == 'ar' ? '💰 الأسعار' : '💰 Pricing' }}</span>
                 <h2 class="section-title">{{ app()->getLocale() == 'ar' ? 'خطط تناسب احتياجاتك' : 'Plans That Fit Your Needs' }}</h2>
-                <p class="section-desc">{{ app()->getLocale() == 'ar' ? 'ابدأ مجاناً لمدة 14 يوم بدون بطاقة ائتمان' : 'Start free for 14 days without a credit card' }}</p>
+                <p class="section-desc">{{ app()->getLocale() == 'ar' ? 'ابدأ بتجربة مجانية 14 يوم - جميع الأسعار بالريال السعودي' : 'Start with a 14-day free trial - All prices in SAR' }}</p>
+            </div>
+
+            {{-- Billing Cycle Toggle --}}
+            <div style="display: flex; justify-content: center; margin-bottom: 40px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.05); padding: 4px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); flex-wrap: wrap; max-width: 100%;">
+                    <button onclick="switchLandingCycle('monthly')" id="lp-btn-monthly" class="lp-cycle-btn" style="background: var(--primary); color: white;">
+                        {{ app()->getLocale() == 'ar' ? 'شهري' : 'Monthly' }}
+                    </button>
+                    <button onclick="switchLandingCycle('quarterly')" id="lp-btn-quarterly" class="lp-cycle-btn" style="background: transparent; color: rgba(255,255,255,0.6);">
+                        {{ app()->getLocale() == 'ar' ? '3 أشهر' : '3 Months' }}
+                    </button>
+                    <button onclick="switchLandingCycle('semi_annual')" id="lp-btn-semi_annual" class="lp-cycle-btn" style="background: transparent; color: rgba(255,255,255,0.6);">
+                        {{ app()->getLocale() == 'ar' ? '6 أشهر' : '6 Months' }}
+                    </button>
+                    <button onclick="switchLandingCycle('yearly')" id="lp-btn-yearly" class="lp-cycle-btn" style="background: transparent; color: rgba(255,255,255,0.6);">
+                        {{ app()->getLocale() == 'ar' ? 'سنوي' : 'Yearly' }}
+                        <span style="background: rgba(52,211,153,0.3); color: #34d399; padding: 2px 8px; border-radius: 6px; font-size: 10px; margin-{{ app()->getLocale() == 'ar' ? 'right' : 'left' }}: 6px;">{{ app()->getLocale() == 'ar' ? 'أفضل قيمة' : 'Best Value' }}</span>
+                    </button>
+                </div>
             </div>
             
-            <div class="pricing-grid">
-                <div class="pricing-card">
-                    <div class="pricing-name">{{ app()->getLocale() == 'ar' ? 'أساسي' : 'Starter' }}</div>
-                    <div class="pricing-desc">{{ app()->getLocale() == 'ar' ? 'للشركات الصغيرة' : 'For small businesses' }}</div>
-                    <div class="pricing-price">$29<span>/{{ app()->getLocale() == 'ar' ? 'شهر' : 'mo' }}</span></div>
+            @php
+            $isAr = app()->getLocale() == 'ar';
+            $featureLabels = [
+                'email_support' => $isAr ? 'دعم بريد إلكتروني' : 'Email Support',
+                'api_access' => $isAr ? 'وصول API' : 'API Access',
+                'advanced_reports' => $isAr ? 'تقارير متقدمة' : 'Advanced Reports',
+                'shift_management' => $isAr ? 'إدارة الورديات' : 'Shift Management',
+                'chat_support' => $isAr ? 'دعم محادثة مباشرة' : 'Live Chat Support',
+                'time_off_management' => $isAr ? 'إدارة الإجازات والأذونات' : 'Leaves & Permissions',
+                'payroll' => $isAr ? 'نظام الرواتب' : 'Payroll System',
+                'salary_advances' => $isAr ? 'السلف والمقدمات' : 'Salary Advances',
+                'contracts' => $isAr ? 'إدارة العقود' : 'Contract Management',
+                'work_points' => $isAr ? 'نقاط العمل' : 'Work Points',
+                'work_tasks' => $isAr ? 'مهام العمل' : 'Work Tasks',
+                'priority_support' => $isAr ? 'دعم أولوية' : 'Priority Support',
+                'custom_branding' => $isAr ? 'علامة تجارية مخصصة' : 'Custom Branding',
+                'white_label' => $isAr ? 'العلامة البيضاء' : 'White Label',
+                'dedicated_support' => $isAr ? 'دعم فني مخصص' : 'Dedicated Support',
+                'sla_guarantee' => $isAr ? 'ضمان مستوى الخدمة' : 'SLA Guarantee',
+                'onboarding_assistance' => $isAr ? 'مساعدة في التفعيل' : 'Onboarding Assistance',
+            ];
+            $planDescEn = [
+                'basic' => 'Perfect for startups & small businesses',
+                'advanced' => 'Ideal for growing businesses',
+                'professional' => 'For large multi-branch companies',
+                'enterprise' => 'Complete solution for enterprises',
+            ];
+            @endphp
+
+            <div class="pricing-grid" style="grid-template-columns: repeat({{ $plans->count() > 0 ? min($plans->count(), 4) : 3 }}, 1fr);">
+                @foreach($plans as $plan)
+                <div class="pricing-card {{ $plan->is_featured ? 'featured' : '' }}">
+                    <div class="pricing-name">{{ $plan->name }}</div>
+                    <div class="pricing-desc">
+                        {{ $isAr ? $plan->description : ($planDescEn[$plan->slug] ?? 'Up to ' . $plan->max_devices . ' devices & ' . $plan->max_employees . ' employees') }}
+                    </div>
+                    <div class="lp-price-monthly" style="display: block;">
+                        <div class="pricing-price">{{ number_format($plan->price_monthly, 0) }}<span> {{ $plan->currency ?? 'SAR' }}/{{ $isAr ? 'شهر' : 'mo' }}</span></div>
+                    </div>
+                    <div class="lp-price-quarterly" style="display: none;">
+                        <div class="pricing-price">{{ number_format($plan->price_quarterly, 0) }}<span> {{ $plan->currency ?? 'SAR' }}/{{ $isAr ? '3 أشهر' : '3 mo' }}</span></div>
+                        @if($plan->price_monthly > 0)
+                        <div style="color: rgba(255,255,255,0.5); font-size: 13px; margin-bottom: 4px;">≈ {{ number_format(round($plan->price_quarterly / 3), 0) }} {{ $plan->currency ?? 'SAR' }}/{{ $isAr ? 'شهر' : 'mo' }}</div>
+                        @endif
+                        @if($plan->getSavingsForCycle('quarterly') > 0)
+                        <div style="color: #34d399; font-size: 13px; font-weight: 600; margin-bottom: 8px;">{{ $isAr ? 'وفّر' : 'Save' }} {{ number_format($plan->getSavingsForCycle('quarterly'), 0) }} {{ $plan->currency ?? 'SAR' }}</div>
+                        @endif
+                    </div>
+                    <div class="lp-price-semi_annual" style="display: none;">
+                        <div class="pricing-price">{{ number_format($plan->price_semi_annual, 0) }}<span> {{ $plan->currency ?? 'SAR' }}/{{ $isAr ? '6 أشهر' : '6 mo' }}</span></div>
+                        @if($plan->price_monthly > 0)
+                        <div style="color: rgba(255,255,255,0.5); font-size: 13px; margin-bottom: 4px;">≈ {{ number_format(round($plan->price_semi_annual / 6), 0) }} {{ $plan->currency ?? 'SAR' }}/{{ $isAr ? 'شهر' : 'mo' }}</div>
+                        @endif
+                        @if($plan->getSavingsForCycle('semi_annual') > 0)
+                        <div style="color: #34d399; font-size: 13px; font-weight: 600; margin-bottom: 8px;">{{ $isAr ? 'وفّر' : 'Save' }} {{ number_format($plan->getSavingsForCycle('semi_annual'), 0) }} {{ $plan->currency ?? 'SAR' }}</div>
+                        @endif
+                    </div>
+                    <div class="lp-price-yearly" style="display: none;">
+                        <div class="pricing-price">{{ number_format($plan->price_yearly, 0) }}<span> {{ $plan->currency ?? 'SAR' }}/{{ $isAr ? 'سنة' : 'yr' }}</span></div>
+                        @if($plan->price_monthly > 0)
+                        <div style="color: rgba(255,255,255,0.5); font-size: 13px; margin-bottom: 4px;">≈ {{ number_format(round($plan->price_yearly / 12), 0) }} {{ $plan->currency ?? 'SAR' }}/{{ $isAr ? 'شهر' : 'mo' }}</div>
+                        @endif
+                        @if($plan->getYearlySavings() > 0)
+                        <div style="color: #34d399; font-size: 13px; font-weight: 600; margin-bottom: 8px;">{{ $isAr ? 'وفّر' : 'Save' }} {{ number_format($plan->getYearlySavings(), 0) }} {{ $plan->currency ?? 'SAR' }}</div>
+                        @endif
+                    </div>
                     <ul class="pricing-features">
-                        <li><span class="check-icon">✓</span> {{ app()->getLocale() == 'ar' ? 'حتى 25 موظف' : 'Up to 25 employees' }}</li>
-                        <li><span class="check-icon">✓</span> {{ app()->getLocale() == 'ar' ? 'جهاز واحد' : '1 device' }}</li>
-                        <li><span class="check-icon">✓</span> {{ app()->getLocale() == 'ar' ? 'تقارير أساسية' : 'Basic reports' }}</li>
-                        <li><span class="check-icon">✓</span> {{ app()->getLocale() == 'ar' ? 'دعم بالبريد' : 'Email support' }}</li>
+                        <li><span class="check-icon">✓</span> {{ $isAr ? 'حتى ' . $plan->max_devices . ' أجهزة' : 'Up to ' . $plan->max_devices . ' devices' }}</li>
+                        <li><span class="check-icon">✓</span> {{ $isAr ? 'حتى ' . $plan->max_employees . ' موظف' : 'Up to ' . $plan->max_employees . ' employees' }}</li>
+                        <li><span class="check-icon">✓</span> {{ $isAr ? $plan->retention_days . ' يوم أرشيف' : $plan->retention_days . ' days retention' }}</li>
+                        @foreach($plan->features ?? [] as $feature)
+                            @if(isset($featureLabels[$feature]))
+                            <li><span class="check-icon">✓</span> {{ $featureLabels[$feature] }}</li>
+                            @endif
+                        @endforeach
                     </ul>
-                    <a href="{{ route('register') }}" class="btn btn-outline" style="width: 100%;">{{ app()->getLocale() == 'ar' ? 'ابدأ الآن' : 'Get Started' }}</a>
+                    <a href="{{ route('register') }}" class="btn {{ $plan->is_featured ? 'btn-primary' : 'btn-outline' }}" style="width: 100%;">{{ $isAr ? 'ابدأ الآن' : 'Get Started' }}</a>
                 </div>
-                
-                <div class="pricing-card featured">
-                    <div class="pricing-name">{{ app()->getLocale() == 'ar' ? 'احترافي' : 'Professional' }}</div>
-                    <div class="pricing-desc">{{ app()->getLocale() == 'ar' ? 'للشركات المتوسطة' : 'For growing companies' }}</div>
-                    <div class="pricing-price">$79<span>/{{ app()->getLocale() == 'ar' ? 'شهر' : 'mo' }}</span></div>
-                    <ul class="pricing-features">
-                        <li><span class="check-icon">✓</span> {{ app()->getLocale() == 'ar' ? 'حتى 100 موظف' : 'Up to 100 employees' }}</li>
-                        <li><span class="check-icon">✓</span> {{ app()->getLocale() == 'ar' ? '5 أجهزة' : '5 devices' }}</li>
-                        <li><span class="check-icon">✓</span> {{ app()->getLocale() == 'ar' ? 'تقارير متقدمة' : 'Advanced reports' }}</li>
-                        <li><span class="check-icon">✓</span> {{ app()->getLocale() == 'ar' ? 'تطبيق الجوال' : 'Mobile app' }}</li>
-                        <li><span class="check-icon">✓</span> {{ app()->getLocale() == 'ar' ? 'دعم مباشر' : 'Live chat support' }}</li>
-                    </ul>
-                    <a href="{{ route('register') }}" class="btn btn-primary" style="width: 100%;">{{ app()->getLocale() == 'ar' ? 'ابدأ الآن' : 'Get Started' }}</a>
-                </div>
-                
-                <div class="pricing-card">
-                    <div class="pricing-name">{{ app()->getLocale() == 'ar' ? 'المؤسسات' : 'Enterprise' }}</div>
-                    <div class="pricing-desc">{{ app()->getLocale() == 'ar' ? 'للشركات الكبيرة' : 'For large organizations' }}</div>
-                    <div class="pricing-price">{{ app()->getLocale() == 'ar' ? 'مخصص' : 'Custom' }}</div>
-                    <ul class="pricing-features">
-                        <li><span class="check-icon">✓</span> {{ app()->getLocale() == 'ar' ? 'موظفين غير محدود' : 'Unlimited employees' }}</li>
-                        <li><span class="check-icon">✓</span> {{ app()->getLocale() == 'ar' ? 'أجهزة غير محدودة' : 'Unlimited devices' }}</li>
-                        <li><span class="check-icon">✓</span> {{ app()->getLocale() == 'ar' ? 'API مخصص' : 'Custom API' }}</li>
-                        <li><span class="check-icon">✓</span> {{ app()->getLocale() == 'ar' ? 'مدير حساب خاص' : 'Dedicated account manager' }}</li>
-                        <li><span class="check-icon">✓</span> {{ app()->getLocale() == 'ar' ? 'SLA مضمون' : 'Guaranteed SLA' }}</li>
-                    </ul>
-                    <a href="https://wa.me/966542999195" target="_blank" class="btn btn-outline" style="width: 100%;">{{ app()->getLocale() == 'ar' ? 'تواصل معنا' : 'Contact Sales' }}</a>
+                @endforeach
+            </div>
+
+            {{-- Plan Comparison Table --}}
+            @if($plans->count() > 1)
+            <div style="margin-top: 60px; max-width: 1000px; margin-left: auto; margin-right: auto;">
+                <h3 style="text-align: center; font-size: 24px; font-weight: 700; margin-bottom: 32px; color: #fff;">
+                    {{ $isAr ? 'مقارنة الباقات' : 'Compare Plans' }}
+                </h3>
+                <div style="overflow-x: auto; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08);">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <thead>
+                            <tr style="background: rgba(255,255,255,0.05);">
+                                <th style="padding: 16px 20px; text-align: {{ $isAr ? 'right' : 'left' }}; color: rgba(255,255,255,0.6); font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                                    {{ $isAr ? 'الميزة' : 'Feature' }}
+                                </th>
+                                @foreach($plans as $plan)
+                                <th style="padding: 16px 20px; text-align: center; color: {{ $plan->is_featured ? 'var(--primary-light)' : '#fff' }}; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.08); {{ $plan->is_featured ? 'background: rgba(99,102,241,0.08);' : '' }}">
+                                    {{ $plan->name }}
+                                </th>
+                                @endforeach
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding: 12px 20px; color: rgba(255,255,255,0.7); border-bottom: 1px solid rgba(255,255,255,0.05);">{{ $isAr ? 'الأجهزة' : 'Devices' }}</td>
+                                @foreach($plans as $plan)
+                                <td style="padding: 12px 20px; text-align: center; color: #fff; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.05); {{ $plan->is_featured ? 'background: rgba(99,102,241,0.04);' : '' }}">{{ $plan->max_devices }}</td>
+                                @endforeach
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px 20px; color: rgba(255,255,255,0.7); border-bottom: 1px solid rgba(255,255,255,0.05);">{{ $isAr ? 'الموظفين' : 'Employees' }}</td>
+                                @foreach($plans as $plan)
+                                <td style="padding: 12px 20px; text-align: center; color: #fff; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.05); {{ $plan->is_featured ? 'background: rgba(99,102,241,0.04);' : '' }}">{{ $plan->max_employees }}</td>
+                                @endforeach
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px 20px; color: rgba(255,255,255,0.7); border-bottom: 1px solid rgba(255,255,255,0.05);">{{ $isAr ? 'أرشيف البيانات' : 'Data Retention' }}</td>
+                                @foreach($plans as $plan)
+                                <td style="padding: 12px 20px; text-align: center; color: #fff; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.05); {{ $plan->is_featured ? 'background: rgba(99,102,241,0.04);' : '' }}">{{ $plan->retention_days }} {{ $isAr ? 'يوم' : 'days' }}</td>
+                                @endforeach
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px 20px; color: rgba(255,255,255,0.7); border-bottom: 1px solid rgba(255,255,255,0.05);">{{ $isAr ? 'شهري' : 'Monthly' }}</td>
+                                @foreach($plans as $plan)
+                                <td style="padding: 12px 20px; text-align: center; color: var(--primary-light); font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.05); {{ $plan->is_featured ? 'background: rgba(99,102,241,0.04);' : '' }}">{{ number_format($plan->price_monthly, 0) }} {{ $plan->currency ?? 'SAR' }}</td>
+                                @endforeach
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px 20px; color: rgba(255,255,255,0.7); border-bottom: 1px solid rgba(255,255,255,0.05);">{{ $isAr ? '3 أشهر' : 'Quarterly' }}</td>
+                                @foreach($plans as $plan)
+                                <td style="padding: 12px 20px; text-align: center; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.05); {{ $plan->is_featured ? 'background: rgba(99,102,241,0.04);' : '' }}">{{ number_format($plan->price_quarterly, 0) }} {{ $plan->currency ?? 'SAR' }}</td>
+                                @endforeach
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px 20px; color: rgba(255,255,255,0.7); border-bottom: 1px solid rgba(255,255,255,0.05);">{{ $isAr ? '6 أشهر' : 'Semi-Annual' }}</td>
+                                @foreach($plans as $plan)
+                                <td style="padding: 12px 20px; text-align: center; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.05); {{ $plan->is_featured ? 'background: rgba(99,102,241,0.04);' : '' }}">{{ number_format($plan->price_semi_annual, 0) }} {{ $plan->currency ?? 'SAR' }}</td>
+                                @endforeach
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px 20px; color: rgba(255,255,255,0.7); border-bottom: 1px solid rgba(255,255,255,0.05);">{{ $isAr ? 'سنوي' : 'Yearly' }}</td>
+                                @foreach($plans as $plan)
+                                <td style="padding: 12px 20px; text-align: center; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.05); {{ $plan->is_featured ? 'background: rgba(99,102,241,0.04);' : '' }}">{{ number_format($plan->price_yearly, 0) }} {{ $plan->currency ?? 'SAR' }}</td>
+                                @endforeach
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px 20px; color: rgba(255,255,255,0.7); border-bottom: 1px solid rgba(255,255,255,0.05);">{{ $isAr ? 'إدارة الورديات' : 'Shift Management' }}</td>
+                                @foreach($plans as $plan)
+                                <td style="padding: 12px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); {{ $plan->is_featured ? 'background: rgba(99,102,241,0.04);' : '' }}">{!! $plan->hasFeature('shift_management') ? '<span style="color:#34d399;">✓</span>' : '<span style="color:rgba(255,255,255,0.2);">—</span>' !!}</td>
+                                @endforeach
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px 20px; color: rgba(255,255,255,0.7); border-bottom: 1px solid rgba(255,255,255,0.05);">{{ $isAr ? 'إدارة الإجازات والأذونات' : 'Leaves & Permissions' }}</td>
+                                @foreach($plans as $plan)
+                                <td style="padding: 12px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); {{ $plan->is_featured ? 'background: rgba(99,102,241,0.04);' : '' }}">{!! $plan->hasFeature('time_off_management') ? '<span style="color:#34d399;">✓</span>' : '<span style="color:rgba(255,255,255,0.2);">—</span>' !!}</td>
+                                @endforeach
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px 20px; color: rgba(255,255,255,0.7); border-bottom: 1px solid rgba(255,255,255,0.05);">{{ $isAr ? 'نظام الرواتب' : 'Payroll System' }}</td>
+                                @foreach($plans as $plan)
+                                <td style="padding: 12px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); {{ $plan->is_featured ? 'background: rgba(99,102,241,0.04);' : '' }}">{!! $plan->hasFeature('payroll') ? '<span style="color:#34d399;">✓</span>' : '<span style="color:rgba(255,255,255,0.2);">—</span>' !!}</td>
+                                @endforeach
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px 20px; color: rgba(255,255,255,0.7); border-bottom: 1px solid rgba(255,255,255,0.05);">{{ $isAr ? 'السلف والمقدمات' : 'Salary Advances' }}</td>
+                                @foreach($plans as $plan)
+                                <td style="padding: 12px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); {{ $plan->is_featured ? 'background: rgba(99,102,241,0.04);' : '' }}">{!! $plan->hasFeature('salary_advances') ? '<span style="color:#34d399;">✓</span>' : '<span style="color:rgba(255,255,255,0.2);">—</span>' !!}</td>
+                                @endforeach
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px 20px; color: rgba(255,255,255,0.7); border-bottom: 1px solid rgba(255,255,255,0.05);">{{ $isAr ? 'إدارة العقود' : 'Contract Management' }}</td>
+                                @foreach($plans as $plan)
+                                <td style="padding: 12px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); {{ $plan->is_featured ? 'background: rgba(99,102,241,0.04);' : '' }}">{!! $plan->hasFeature('contracts') ? '<span style="color:#34d399;">✓</span>' : '<span style="color:rgba(255,255,255,0.2);">—</span>' !!}</td>
+                                @endforeach
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px 20px; color: rgba(255,255,255,0.7); border-bottom: 1px solid rgba(255,255,255,0.05);">{{ $isAr ? 'نقاط ومهام العمل' : 'Work Points & Tasks' }}</td>
+                                @foreach($plans as $plan)
+                                <td style="padding: 12px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); {{ $plan->is_featured ? 'background: rgba(99,102,241,0.04);' : '' }}">{!! $plan->hasFeature('work_points') ? '<span style="color:#34d399;">✓</span>' : '<span style="color:rgba(255,255,255,0.2);">—</span>' !!}</td>
+                                @endforeach
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px 20px; color: rgba(255,255,255,0.7); border-bottom: 1px solid rgba(255,255,255,0.05);">{{ $isAr ? 'تقارير متقدمة' : 'Advanced Reports' }}</td>
+                                @foreach($plans as $plan)
+                                <td style="padding: 12px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); {{ $plan->is_featured ? 'background: rgba(99,102,241,0.04);' : '' }}">{!! $plan->hasFeature('advanced_reports') ? '<span style="color:#34d399;">✓</span>' : '<span style="color:rgba(255,255,255,0.2);">—</span>' !!}</td>
+                                @endforeach
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px 20px; color: rgba(255,255,255,0.7); border-bottom: 1px solid rgba(255,255,255,0.05);">{{ $isAr ? 'وصول API' : 'API Access' }}</td>
+                                @foreach($plans as $plan)
+                                <td style="padding: 12px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); {{ $plan->is_featured ? 'background: rgba(99,102,241,0.04);' : '' }}">{!! $plan->hasFeature('api_access') ? '<span style="color:#34d399;">✓</span>' : '<span style="color:rgba(255,255,255,0.2);">—</span>' !!}</td>
+                                @endforeach
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px 20px; color: rgba(255,255,255,0.7); border-bottom: 1px solid rgba(255,255,255,0.05);">{{ $isAr ? 'دعم أولوية' : 'Priority Support' }}</td>
+                                @foreach($plans as $plan)
+                                <td style="padding: 12px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); {{ $plan->is_featured ? 'background: rgba(99,102,241,0.04);' : '' }}">{!! $plan->hasFeature('priority_support') ? '<span style="color:#34d399;">✓</span>' : '<span style="color:rgba(255,255,255,0.2);">—</span>' !!}</td>
+                                @endforeach
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px 20px; color: rgba(255,255,255,0.7);">{{ $isAr ? 'علامة تجارية مخصصة' : 'Custom Branding' }}</td>
+                                @foreach($plans as $plan)
+                                <td style="padding: 12px 20px; text-align: center; {{ $plan->is_featured ? 'background: rgba(99,102,241,0.04);' : '' }}">{!! $plan->hasFeature('custom_branding') ? '<span style="color:#34d399;">✓</span>' : '<span style="color:rgba(255,255,255,0.2);">—</span>' !!}</td>
+                                @endforeach
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
+            @endif
         </div>
     </section>
-    --}}
+
+    <script>
+    // Mobile nav toggle
+    function openMobileNav() {
+        var nav = document.getElementById('mobileNav');
+        var btn = document.getElementById('hamburgerBtn');
+        nav.classList.add('open');
+        btn.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeMobileNav() {
+        var nav = document.getElementById('mobileNav');
+        var btn = document.getElementById('hamburgerBtn');
+        nav.classList.remove('open');
+        btn.classList.remove('open');
+        document.body.style.overflow = '';
+    }
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) closeMobileNav();
+    });
+    // Close on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeMobileNav();
+    });
+
+    function switchLandingCycle(cycle) {
+        const cycles = ['monthly', 'quarterly', 'semi_annual', 'yearly'];
+        cycles.forEach(c => {
+            const btn = document.getElementById('lp-btn-' + c);
+            if (btn) {
+                if (c === cycle) {
+                    btn.style.background = 'var(--primary)';
+                    btn.style.color = 'white';
+                } else {
+                    btn.style.background = 'transparent';
+                    btn.style.color = 'rgba(255,255,255,0.6)';
+                }
+            }
+            document.querySelectorAll('.lp-price-' + c).forEach(el => {
+                el.style.display = (c === cycle) ? 'block' : 'none';
+            });
+        });
+    }
+    </script>
     
     <!-- CTA Section -->
     <section class="cta">
         <div class="cta-box">
             <div class="cta-content">
                 <h2 class="cta-title">{{ app()->getLocale() == 'ar' ? 'جاهز للبدء؟' : 'Ready to Get Started?' }}</h2>
-                <p class="cta-desc">{{ app()->getLocale() == 'ar' ? 'انضم لأكثر من 500 شركة تدير حضورها بذكاء مع دوام' : 'Join over 500 companies managing their attendance smartly with Dawam' }}</p>
+                <p class="cta-desc">{{ app()->getLocale() == 'ar' ? 'انضم لأكثر من 500 شركة تدير مواردها البشرية بذكاء مع حاضر' : 'Join over 500 companies managing their HR smartly with Hadir' }}</p>
                 <a href="{{ route('register') }}" class="btn btn-secondary" style="font-size: 18px; padding: 18px 40px;">
                     🚀 {{ app()->getLocale() == 'ar' ? 'ابدأ تجربتك المجانية' : 'Start Your Free Trial' }}
                 </a>
@@ -1034,7 +1536,7 @@
     <!-- Footer -->
     <footer class="footer">
         <div class="footer-content">
-            <div class="footer-text">© {{ date('Y') }} {{ app()->getLocale() == 'ar' ? 'دوام. جميع الحقوق محفوظة.' : 'Dawam. All rights reserved.' }}</div>
+            <div class="footer-text">© {{ date('Y') }} {{ app()->getLocale() == 'ar' ? 'حاضر. جميع الحقوق محفوظة.' : 'Hadir. All rights reserved.' }}</div>
             <div class="footer-links">
                 <a href="tel:+966542999195">📱 +966 54 299 9195</a>
                 <a href="https://wa.me/966542999195" target="_blank" style="color: #25d366;">💬 {{ app()->getLocale() == 'ar' ? 'واتساب' : 'WhatsApp' }}</a>
